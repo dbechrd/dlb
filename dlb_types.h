@@ -11,20 +11,30 @@
 // #include <limits.h>
 // #include <float.h>
 
-typedef int8_t  s8;
-typedef int16_t s16;
-typedef int32_t s32;
-typedef int64_t s64;
+typedef int8_t      s8;
+typedef int16_t     s16;
+typedef int32_t     s32;
+typedef int64_t     s64;
+typedef uint8_t     u8;
+typedef uint16_t    u16;
+typedef uint32_t    u32;
+typedef uint64_t    u64;
+typedef float       r32;
+typedef double      r64;
+typedef u32         b32;
 
-typedef uint8_t  u8;
-typedef uint16_t u16;
-typedef uint32_t u32;
-typedef uint64_t u64;
+typedef s8      int8;
+typedef s16     int16;
+typedef s32     int32;
+typedef s64     int64;
+typedef u8      uint8;
+typedef u16     uint16;
+typedef u32     uint32;
+typedef u64     uint64;
+typedef r32     real32;
+typedef r64     real64;
+typedef u32     bool32;
 
-typedef float r32;
-typedef double r64;
-
-//typedef u32 bool;
 //#define true 1
 //#define false 0
 

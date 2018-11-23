@@ -44,7 +44,10 @@ typedef struct dlb_vec__hdr {
     dlb_vec__hdr(b)->len++, \
     dlb_vec_last(b))
 #define dlb_vec_pop(b) (dlb_vec_len(b) > 0 ? dlb_vec__hdr(b)->len-- : 0)
+#define dlb_vec_clear(b) (dlb_vec_len(b) > 0 ? dlb_vec__hdr(b)->len = 0 : 0)
 #define dlb_vec_free(b) ((b) ? (free(dlb_vec__hdr(b)), (b) = NULL) : 0)
+
+void *dlb_vec__grow(const void *buf, size_t len, size_t size);
 
 #endif
 //-- end of header -------------------------------------------------------------

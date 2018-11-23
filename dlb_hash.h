@@ -44,35 +44,40 @@ void MurmurHash3_x64_128(const void *key, int len, void *out);
 // Key/value slot (a.k.a. "bucket")
 struct dlb_hash_entry
 {
-    u32 key;
+    const char *key;
+    size_t key_len;
     void *value;
+    struct dlb_hash_entry *next;
 };
 
 struct dlb_hash
 {
     const char *name;
-    u32 bucket_count;
-    u32 chain_length;
+    size_t bucket_count;
+    size_t chain_length;
     struct dlb_hash_entry *buckets;
 };
 
-static inline u32 hash_u32(u32 key)
-{
-    u32 hash;
-    MurmurHash3_x86_32(&key, sizeof(key), &hash);
-    return hash;
-}
+void dlb_hash_init(struct dlb_hash *table, const char *name,
+                   size_t bucket_count, size_t chain_length);
+void dlb_hash_free(struct dlb_hash *table);
+bool dlb_hash_insert(struct dlb_hash *table, const char *key, size_t key_len,
+                     void *value);
+void *dlb_hash_search(struct dlb_hash *table, const char *key, size_t key_len);
+bool dlb_hash_delete(struct dlb_hash *table, const char *key, size_t key_len);
 
-static inline u32 hash_string(u32 len, const void *str)
+//static inline u32 hash_u32(u32 key)
+//{
+//    u32 hash;
+//    MurmurHash3_x86_32(&key, sizeof(key), &hash);
+//    return hash;
+//}
+
+static inline u32 hash_string(const char *str, size_t len)
 {
     u32 hash;
     MurmurHash3_x86_32(str, len, &hash);
     return hash;
-}
-
-static inline struct dlb_hash_entry *chains(struct dlb_hash *table)
-{
-    return table->buckets + table->bucket_count;
 }
 #endif
 //-- end of header -------------------------------------------------------------
@@ -370,24 +375,45 @@ void MurmurHash3_x64_128(const void *key, int len, void *out)
 }
 
 //-- dlb_hash.c ----------------------------------------------------------------
-static void hashtable_init(struct dlb_hash *table, const char *name,
-                           u32 bucket_count, u32 chain_length)
+void dlb_hash_init(struct dlb_hash *table, const char *name,
+                   size_t bucket_count, size_t chain_size)
 {
     DLB_ASSERT(bucket_count);
-    DLB_ASSERT(chain_length >= 2);
+    DLB_ASSERT(chain_size >= 2);
 
     table->name = name;
     table->bucket_count = bucket_count;
-    table->chain_length = chain_length;
-    table->buckets = calloc(bucket_count * (1 + chain_length),
+    table->chain_length = chain_size - 1;
+    table->buckets = calloc(bucket_count * chain_size,
                             sizeof(table->buckets[0]));
+
+    struct dlb_hash_entry *chains = (table->buckets + table->bucket_count);
+    for (size_t i = 0; i < bucket_count; i++)
+    {
+        struct dlb_hash_entry *entry = &table->buckets[i];
+        struct dlb_hash_entry *entry_chain = chains + (table->chain_length * i);
+        entry->next = entry_chain;
+        for (size_t k = 0; k < table->chain_length - 1; k++)
+        {
+            entry_chain[k].next = &entry_chain[k + 1];
+        }
+    }
+
+    //for (size_t i = 0; i < bucket_count; i++)
+    //{
+    //    struct dlb_hash_entry *entry = &table->buckets[i];
+    //    while (entry) {
+    //        entry->key_len = i + 1;
+    //        entry = entry->next;
+    //    }
+    //}
 
 #if DLB_HASH_DEBUG
     printf("[hash][init] %s\n", table->hnd.name);
 #endif
 }
 
-void hashtable_free(struct dlb_hash *table)
+void dlb_hash_free(struct dlb_hash *table)
 {
 #if DLB_HASH_DEBUG
     printf("[hash][free] %s\n", table->hnd.name);
@@ -396,84 +422,76 @@ void hashtable_free(struct dlb_hash *table)
     free(table->buckets);
 }
 
-void *hashtable_search(struct dlb_hash *table, u32 key)
+#define DLB_HASH_MATCH(entry, key, len) \
+    ((entry)->key_len == (len) && strncmp((entry)->key, key, len) == 0)
+
+bool dlb_hash_insert(struct dlb_hash *table, const char *key, size_t key_len,
+                     void *value)
 {
-    DLB_ASSERT(key);
-    u32 hash = hash_u32(key);
+    DLB_ASSERT(key_len);
+    u32 hash = hash_string(key, key_len);
     u32 index = hash % table->bucket_count;
 
-    // Check if bucket empty
-    if (!table->buckets[index].key)
+    // Find empty slot
+    struct dlb_hash_entry *entry = &table->buckets[index];
+    while (entry && entry->key_len)
     {
-        return NULL;
+        // NOTE(perf): Prevent dupe keys
+        DLB_ASSERT(!DLB_HASH_MATCH(entry, key, key_len));
+        entry = entry->next;
     }
 
-    // Check bucket head
-    if (table->buckets[index].key == key)
-    {
-        return table->buckets[index].value;
-    }
-
-    u32 i = 0;
-    struct dlb_hash_entry *entry = chains(table);
-    while (i++ < table->chain_length && entry->key && entry->key != key)
-    {
-        entry++;
-    }
-
-    if (i < table->chain_length && entry->key)
-    {
-        return entry->value;
-    }
-    return NULL;
-}
-
-bool hashtable_insert(struct dlb_hash *table, u32 key, void *value)
-{
-    DLB_ASSERT(key);
-    u32 hash = hash_u32(key);
-    u32 index = hash % table->bucket_count;
-
-    // Prevent dupe keys
-    DLB_ASSERT(table->buckets[index].key != key);
-
-    // Check bucket head
-    if (!table->buckets[index].key)
-    {
-        table->buckets[index].key = key;
-        table->buckets[index].value = value;
-        return true;
-    }
-
-    u32 i = 0;
-    struct dlb_hash_entry *entry = chains(table);
-    while (i++ < table->chain_length && entry->key)
-    {
-        DLB_ASSERT(entry->key != key);  // Prevent dupe keys
-        entry++;
-    }
-
-    if (i < table->chain_length)
+    // Insert if we found an empty slot
+    if (entry && !entry->key_len)
     {
         entry->key = key;
+        entry->key_len = key_len;
         entry->value = value;
         return true;
     }
+
+    // Out of memory
+    DLB_ASSERT(0);  // TODO: Realloc hash table
     return false;
 }
-static bool hashtable_delete(struct dlb_hash *table, u32 key)
+void *dlb_hash_search(struct dlb_hash *table, const char *key, size_t key_len)
 {
     DLB_ASSERT(key);
-    u32 hash = hash_u32(key);
+    u32 hash = hash_string(key, key_len);
+    u32 index = hash % table->bucket_count;
+
+    void *value = NULL;
+
+    struct dlb_hash_entry *entry = &table->buckets[index];
+    while (entry && entry->key_len)
+    {
+        if (DLB_HASH_MATCH(entry, key, key_len))
+        {
+            value = entry->value;
+            break;
+        }
+        entry = entry->next;
+    }
+
+    return value;
+}
+
+////////////////////////////////////////////////////////////////////////////////
+// TODO: FIX DELETE
+////////////////////////////////////////////////////////////////////////////////
+bool dlb_hash_delete(struct dlb_hash *table, const char *key, size_t key_len)
+{
+    DLB_ASSERT(key);
+    u32 hash = hash_string(key, key_len);
     u32 index = hash % table->bucket_count;
 
     // Check if bucket empty
-    if (!table->buckets[index].key)
+    if (!table->buckets[index].key_len)
     {
         return false;
     }
 
-    struct dlb_hash_entry *prev_entry = chains(table);
+    struct dlb_hash_entry *prev_entry = NULL; //chains(table);
     struct dlb_hash_entry *entry = prev_entry + 1;
     bool found = false;
 

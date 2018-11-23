@@ -40,7 +40,7 @@
 #define MB(bytes) (1024 * KB(bytes))
 #define GB(bytes) (1024 * MB(bytes))
 
-#define MATH_EPSILON 0.00001f
+#define MATH_EPSILON 0.0001f
 #define VEC3_EPSILON MATH_EPSILON
 #define MAT4_EPSILON MATH_EPSILON
 #define QUAT_EPSILON MATH_EPSILON
@@ -277,7 +277,9 @@ DLB_MATH_DEF struct vec3 *v3_scale(struct vec3 *v, const struct vec3 *s);
 DLB_MATH_DEF struct vec3 *v3_scalef(struct vec3 *v, float s);
 DLB_MATH_DEF float v3_dot(const struct vec3 *a, const struct vec3 *b);
 DLB_MATH_DEF struct vec3 v3_cross(const struct vec3 *a, const struct vec3 *b);
+DLB_MATH_DEF struct vec3 v3_reflect(const struct vec3 *a, const struct vec3 *b);
 DLB_MATH_DEF float v3_length(const struct vec3 *v);
+DLB_MATH_DEF float v3_length_sq(const struct vec3 *v);
 DLB_MATH_DEF struct vec3 *v3_negate(struct vec3 *v);
 DLB_MATH_DEF struct vec3 *v3_normalize(struct vec3 *v);
 DLB_MATH_DEF struct vec3 *v3_positive(struct vec3 *v);
@@ -441,6 +443,21 @@ DLB_MATH_DEF struct vec3 v3_cross(const struct vec3 *a, const struct vec3 *b)
     c.z = a->x * b->y - a->y * b->x;
     return c;
 }
+DLB_MATH_DEF struct vec3 v3_reflect(const struct vec3 *a, const struct vec3 *b)
+{
+    // r = a - (2 * dot(a, b) / len_sq(b)) * b
+    float dot = v3_dot(a, b);
+    float len = v3_length_sq(b);
+    float scale = 2.0f * dot / len;
+
+    struct vec3 scale_b = *b;
+    v3_scalef(&scale_b, scale);
+
+    struct vec3 r = scale_b;
+    v3_sub(&r, a);
+
+    return r;
+}
 DLB_MATH_DEF float v3_length(const struct vec3 *v)
 {
     return sqrtf(
@@ -448,6 +465,11 @@ DLB_MATH_DEF float v3_length(const struct vec3 *v)
         v->y * v->y +
         v->z * v->z
     );
+}
+DLB_MATH_DEF float v3_length_sq(const struct vec3 *v)
+{
+    float len_sq = v->x * v->x + v->y * v->y + v->z * v->z;
+    return len_sq;
 }
 DLB_MATH_DEF struct vec3 *v3_negate(struct vec3 *v)
 {
