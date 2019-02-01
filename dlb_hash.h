@@ -375,38 +375,34 @@ void MurmurHash3_x64_128(const void *key, int len, void *out)
 }
 
 //-- dlb_hash.c ----------------------------------------------------------------
+#include <string.h>
+
 void dlb_hash_init(struct dlb_hash *table, const char *name,
                    size_t bucket_count, size_t chain_size)
 {
     DLB_ASSERT(bucket_count);
-    DLB_ASSERT(chain_size >= 2);
+    DLB_ASSERT(chain_size > 0);
 
     table->name = name;
     table->bucket_count = bucket_count;
     table->chain_length = chain_size - 1;
-    table->buckets = calloc(bucket_count * chain_size,
-                            sizeof(table->buckets[0]));
+    table->buckets = (struct dlb_hash_entry *)calloc(bucket_count * chain_size,
+                                              sizeof(table->buckets[0]));
 
-    struct dlb_hash_entry *chains = (table->buckets + table->bucket_count);
-    for (size_t i = 0; i < bucket_count; i++)
+    if (table->chain_length > 1)
     {
-        struct dlb_hash_entry *entry = &table->buckets[i];
-        struct dlb_hash_entry *entry_chain = chains + (table->chain_length * i);
-        entry->next = entry_chain;
-        for (size_t k = 0; k < table->chain_length - 1; k++)
+        struct dlb_hash_entry *chains = (table->buckets + table->bucket_count);
+        for (size_t i = 0; i < bucket_count; i++)
         {
-            entry_chain[k].next = &entry_chain[k + 1];
+            struct dlb_hash_entry *entry = &table->buckets[i];
+            struct dlb_hash_entry *entry_chain = chains + (table->chain_length * i);
+            entry->next = entry_chain;
+            for (size_t k = 0; k < table->chain_length - 1; k++)
+            {
+                entry_chain[k].next = &entry_chain[k + 1];
+            }
         }
     }
-
-    //for (size_t i = 0; i < bucket_count; i++)
-    //{
-    //    struct dlb_hash_entry *entry = &table->buckets[i];
-    //    while (entry) {
-    //        entry->key_len = i + 1;
-    //        entry = entry->next;
-    //    }
-    //}
 
 #if DLB_HASH_DEBUG
     printf("[hash][init] %s\n", table->hnd.name);
