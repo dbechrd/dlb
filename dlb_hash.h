@@ -437,18 +437,20 @@ bool dlb_hash_insert(struct dlb_hash *table, const char *key, size_t key_len,
         entry = entry->next;
     }
 
+    bool success = false;
+
     // Insert if we found an empty slot
     if (entry && !entry->key_len)
     {
         entry->key = key;
         entry->key_len = key_len;
         entry->value = value;
-        return true;
+        success = true;
+    } else {
+        // Out of memory
+        DLB_ASSERT(0);  // TODO: Realloc hash table
     }
-
-    // Out of memory
-    DLB_ASSERT(0);  // TODO: Realloc hash table
-    return false;
+    return success;
 }
 void *dlb_hash_search(struct dlb_hash *table, const char *key, size_t key_len)
 {
