@@ -37,8 +37,8 @@ typedef struct dlb_vec__hdr {
     ((n) <= dlb_vec_cap(b) ? 0 : ((b) = dlb_vec__grow((b), (n), sizeof(*(b)))))
 #define dlb_vec_push(b, ...) \
     (dlb_vec_reserve((b), 1 + dlb_vec_len(b)), \
-                    ((b)[dlb_vec__hdr(b)->len++] = (__VA_ARGS__)), \
-                    dlb_vec_last(b))
+    ((b)[dlb_vec__hdr(b)->len++] = (__VA_ARGS__)), \
+    dlb_vec_last(b))
 #define dlb_vec_alloc(b) \
     (dlb_vec_reserve((b), 1 + dlb_vec_len(b)), \
     dlb_vec__hdr(b)->len++, \

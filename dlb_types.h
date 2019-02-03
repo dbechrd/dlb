@@ -67,15 +67,18 @@ typedef u32     bool32;
 #define ALIGN_UP_PTR(p, a) ((void *)ALIGN_UP((uintptr_t)(p), (a)))
 
 #define DLB_ASSERT_HANDLER(name) \
-    void name(const char *expr, const char *file, u32 line)
+    void name(const char *expr, const char *filename, u32 line)
 typedef DLB_ASSERT_HANDLER(DLB_assert_handler_def);
 DLB_assert_handler_def *DLB_assert_handler;
 
+/*
+// NOT SAFE TO USE IN WINDOWS 10, CAUSES ENTIRE OS TO HANG
 #if defined(_MSC_VER)
     #define DLB_DEBUG_BREAK __debugbreak()
 #elif defined(__GNUC__) || defined(__clang__)
     #define DLB_DEBUG_BREAK __builtin_trap()
 #endif
+*/
 
 #define DLB_ASSERT(expr) \
     if (expr) { } \
@@ -83,7 +86,6 @@ DLB_assert_handler_def *DLB_assert_handler;
         if (DLB_assert_handler) { \
             (*DLB_assert_handler)(#expr, __FILE__, __LINE__); \
         } \
-        DLB_DEBUG_BREAK; \
     }
 
 static inline u16 endian_swap_u16(u16 val)

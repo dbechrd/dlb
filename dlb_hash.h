@@ -424,6 +424,7 @@ void dlb_hash_free(struct dlb_hash *table)
 bool dlb_hash_insert(struct dlb_hash *table, const char *key, size_t key_len,
                      void *value)
 {
+    DLB_ASSERT(key);
     DLB_ASSERT(key_len);
     u32 hash = hash_string(key, key_len);
     u32 index = hash % table->bucket_count;
@@ -455,6 +456,7 @@ bool dlb_hash_insert(struct dlb_hash *table, const char *key, size_t key_len,
 void *dlb_hash_search(struct dlb_hash *table, const char *key, size_t key_len)
 {
     DLB_ASSERT(key);
+    DLB_ASSERT(key_len);
     u32 hash = hash_string(key, key_len);
     u32 index = hash % table->bucket_count;
 
@@ -480,6 +482,7 @@ void *dlb_hash_search(struct dlb_hash *table, const char *key, size_t key_len)
 bool dlb_hash_delete(struct dlb_hash *table, const char *key, size_t key_len)
 {
     DLB_ASSERT(key);
+    DLB_ASSERT(key_len);
     u32 hash = hash_string(key, key_len);
     u32 index = hash % table->bucket_count;
 
