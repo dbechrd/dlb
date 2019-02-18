@@ -33,7 +33,7 @@ void MurmurHash3_x64_128(const void *key, int len, void *out);
 struct dlb_hash_entry
 {
     const char *key;
-    size_t key_len;
+    size_t klen;
     void *value;
 };
 
@@ -47,10 +47,10 @@ struct dlb_hash
 void dlb_hash_init(struct dlb_hash *table, const char *name,
                    size_t size_pow2);
 void dlb_hash_free(struct dlb_hash *table);
-void dlb_hash_insert(struct dlb_hash *table, const char *key, size_t key_len,
+void dlb_hash_insert(struct dlb_hash *table, const char *key, size_t klen,
                      void *value);
-void *dlb_hash_search(struct dlb_hash *table, const char *key, size_t key_len);
-void dlb_hash_delete(struct dlb_hash *table, const char *key, size_t key_len);
+void *dlb_hash_search(struct dlb_hash *table, const char *key, size_t klen);
+void dlb_hash_delete(struct dlb_hash *table, const char *key, size_t klen);
 
 static inline u32 hash_string(const char *str, size_t len)
 {
@@ -392,10 +392,10 @@ static u32 _dlb_hash_probe(u32 offset)
 }
 
 static struct dlb_hash_entry *
-_dlb_hash_find(struct dlb_hash *table, const char *key, u32 key_len,
+_dlb_hash_find(struct dlb_hash *table, const char *key, u32 klen,
                struct dlb_hash_entry **first_freed, u8 return_first)
 {
-    u32 hash = hash_string(key, key_len);
+    u32 hash = hash_string(key, klen);
     u32 index = hash % table->size;
     u32 offset = 0;
 
@@ -405,7 +405,7 @@ _dlb_hash_find(struct dlb_hash *table, const char *key, u32 key_len,
 		entry = table->buckets + index;
 
 		// Empty slot
-		if (!entry->key_len) {
+		if (!entry->klen) {
             if (entry->key == _DLB_HASH_FREED) {
                 if (return_first) {
                     break;
@@ -418,7 +418,7 @@ _dlb_hash_find(struct dlb_hash *table, const char *key, u32 key_len,
 		}
 
 		// Match
-        if (entry->key_len == key_len && !strncmp(entry->key, key, key_len)) {
+        if (entry->klen == klen && !strncmp(entry->key, key, klen)) {
 			break;
 		}
 
@@ -436,19 +436,19 @@ _dlb_hash_find(struct dlb_hash *table, const char *key, u32 key_len,
     return entry;
 }
 
-void dlb_hash_insert(struct dlb_hash *table, const char *key, size_t key_len,
+void dlb_hash_insert(struct dlb_hash *table, const char *key, size_t klen,
                      void *value)
 {
     DLB_ASSERT(key);
-    DLB_ASSERT(key_len);
+    DLB_ASSERT(klen);
 
     struct dlb_hash_entry *first_freed = 0;
     struct dlb_hash_entry *entry =
-        _dlb_hash_find(table, key, key_len, &first_freed, 1);
+        _dlb_hash_find(table, key, klen, &first_freed, 1);
 
     if (entry) {
         entry->key = key;
-        entry->key_len = key_len;
+        entry->klen = klen;
         entry->value = value;
     } else {
         // Out of memory
@@ -457,26 +457,26 @@ void dlb_hash_insert(struct dlb_hash *table, const char *key, size_t key_len,
         DLB_ASSERT(0);  // TODO: Realloc hash table
     }
 }
-void *dlb_hash_search(struct dlb_hash *table, const char *key, size_t key_len)
+void *dlb_hash_search(struct dlb_hash *table, const char *key, size_t klen)
 {
     DLB_ASSERT(key);
-    DLB_ASSERT(key_len);
+    DLB_ASSERT(klen);
     void *value = NULL;
 
     struct dlb_hash_entry *first_freed = 0;
     struct dlb_hash_entry *entry =
-        _dlb_hash_find(table, key, key_len, &first_freed, 0);
+        _dlb_hash_find(table, key, klen, &first_freed, 0);
 
-    if (entry && entry->key_len) {
+    if (entry && entry->klen) {
         value = entry->value;
 
         // Optimize by pushing entry into first free slot
         if (first_freed) {
             first_freed->key = entry->key;
-            first_freed->key_len = entry->key_len;
+            first_freed->klen = entry->klen;
             first_freed->value = entry->value;
             entry->key = _DLB_HASH_FREED;
-            entry->key_len = 0;
+            entry->klen = 0;
             entry->value = 0;
         }
     }
@@ -488,16 +488,16 @@ void *dlb_hash_search(struct dlb_hash *table, const char *key, size_t key_len)
 // https://en.wikipedia.org/wiki/Lazy_deletion
 // https://attractivechaos.wordpress.com/2018/10/01/advanced-techniques-to-implement-fast-hash-tables/
 
-void dlb_hash_delete(struct dlb_hash *table, const char *key, size_t key_len)
+void dlb_hash_delete(struct dlb_hash *table, const char *key, size_t klen)
 {
     DLB_ASSERT(key);
-    DLB_ASSERT(key_len);
+    DLB_ASSERT(klen);
 
-    struct dlb_hash_entry *entry = _dlb_hash_find(table, key, key_len, 0, 0);
+    struct dlb_hash_entry *entry = _dlb_hash_find(table, key, klen, 0, 0);
 
-    if (entry && entry->key_len) {
+    if (entry && entry->klen) {
         entry->key = _DLB_HASH_FREED;
-        entry->key_len = 0;
+        entry->klen = 0;
         entry->value = 0;
     } else {
         DLB_ASSERT(0);  // Error: Tried to delete non-existent key
