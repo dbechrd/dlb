@@ -385,19 +385,13 @@ void dlb_hash_free(struct dlb_hash *table)
     free(table->buckets);
 }
 
-static u32 _dlb_hash_probe(u32 offset)
-{
-	float half_offset = 0.5f * offset;
-	return (u32)(half_offset + half_offset * offset);
-}
-
 static struct dlb_hash_entry *
 _dlb_hash_find(struct dlb_hash *table, const char *key, u32 klen,
                struct dlb_hash_entry **first_freed, u8 return_first)
 {
     u32 hash = hash_string(key, klen);
     u32 index = hash % table->size;
-    u32 offset = 0;
+    u32 i = 0;
 
     struct dlb_hash_entry *entry = 0;
 	for (;;)
@@ -423,11 +417,12 @@ _dlb_hash_find(struct dlb_hash *table, const char *key, u32 klen,
 		}
 
 		// Next slot
-        offset++;
-        index = (index + _dlb_hash_probe(offset)) % table->size;
+        i++;
+        index += i * (i + 1) / 2;  // Same as (0.5f)i + (0.5f)i^2
+        index %= table->size;
 
         // End of probe; not found
-		if (offset == table->size) {
+		if (i == table->size) {
 			entry = 0;
 			break;
 		}
