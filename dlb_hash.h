@@ -421,6 +421,8 @@ _dlb_hash_find(struct dlb_hash *table, const char *key, u32 klen,
         index += i * (i + 1) / 2;  // Same as (0.5f)i + (0.5f)i^2
         index %= table->size;
 
+        // NOTE(perf): This check will check entire hash table if power-of-two
+        //             size. This would be a good place to enforce max probes.
         // End of probe; not found
 		if (i == table->size) {
 			entry = 0;
