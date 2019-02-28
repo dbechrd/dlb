@@ -59,6 +59,7 @@ typedef u32     bool32;
 #define ARRAY_COUNT(a) (sizeof(a) / sizeof(a[0]))
 #define SIZEOF_MEMBER(type, member) sizeof(((type *)0)->member)
 #define STRING(s) (#s)
+#define CSTR(s) (s), sizeof(s) - 1
 
 // Note: Alignment must be power of 2
 #define ALIGN_DOWN(n, a) ((n) & ~((a) - 1))

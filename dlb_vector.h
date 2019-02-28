@@ -2,24 +2,9 @@
 // Copyright 2018 Dan Bechard
 //------------------------------------------------------------------------------
 
-#if 0
-int *store = NULL;
-for (int i = 0; i < 1024; i++) {
-    dlb_vec_push(store, i);
-}
-for (size_t i = 0; i < dlb_vec_len(store); i++) {
-    assert(store[i] == i);
-}
-dlb_vec_free(store);
-#endif
-
 //-- header --------------------------------------------------------------------
 #ifndef DLB_VECTOR_H
 #define DLB_VECTOR_H
-
-#include <stdlib.h>
-#include "dlb_types.h"
-#include "dlb_memory.h"
 
 typedef struct dlb_vec__hdr {
     size_t len;
@@ -57,6 +42,9 @@ void *dlb_vec__grow(const void *buf, size_t len, size_t size);
 #ifndef DLB_VECTOR_IMPLEMENTATION_DEF
 #define DLB_VECTOR_IMPLEMENTATION_DEF
 
+#include "dlb_types.h"
+#include "dlb_memory.h"
+
 void *dlb_vec__grow(const void *buf, size_t len, size_t size) {
     DLB_ASSERT(dlb_vec_cap(buf) <= (SIZE_MAX - 1) / 2);
     size_t capacity = MAX(16, MAX(1 + 2 * dlb_vec_cap(buf), len));
@@ -73,6 +61,26 @@ void *dlb_vec__grow(const void *buf, size_t len, size_t size) {
     vec->cap = capacity;
     char *new_buf = (char *)vec + sizeof(dlb_vec__hdr);
     return new_buf;
+}
+
+#endif
+#endif
+
+//-- tests ---------------------------------------------------------------------
+#ifdef DLB_VECTOR_TEST
+#ifndef DLB_VECTOR_TEST_DEF
+#define DLB_VECTOR_TEST_DEF
+
+static void *dlb_vec_test()
+{
+    int *store = NULL;
+    for (int i = 0; i < 1024; i++) {
+        dlb_vec_push(store, i);
+    }
+    for (size_t i = 0; i < dlb_vec_len(store); i++) {
+        assert(store[i] == i);
+    }
+    dlb_vec_free(store);
 }
 
 #endif

@@ -6,7 +6,6 @@
 #ifndef DLB_HASH_H
 #define DLB_HASH_H
 
-#include <stdio.h>
 #include "dlb_types.h"
 
 //-- Murmurhash3.h -------------------------------------------------------------
@@ -55,7 +54,7 @@ void dlb_hash_delete(struct dlb_hash *table, const char *key, size_t klen);
 static inline u32 hash_string(const char *str, size_t len)
 {
     u32 hash;
-    MurmurHash3_x86_32(str, len, &hash);
+    MurmurHash3_x86_32(str, (int)len, &hash);
     return hash;
 }
 #endif
@@ -354,7 +353,9 @@ void MurmurHash3_x64_128(const void *key, int len, void *out)
 }
 
 //-- dlb_hash.c ----------------------------------------------------------------
+#include "dlb_memory.h"
 #include <string.h>
+#include <stdio.h>
 
 const char *_DLB_HASH_FREED = "_dlb_hash_freed";
 
@@ -369,7 +370,7 @@ void dlb_hash_init(struct dlb_hash *table, const char *name, size_t size_pow2)
     table->name = name;
 	table->size = size_pow2;
     table->buckets = (struct dlb_hash_entry *)
-		calloc(table->size, sizeof(table->buckets[0]));
+        dlb_calloc(table->size, sizeof(table->buckets[0]));
 
 #if DLB_HASH_DEBUG
     printf("[hash][init] %s\n", table->hnd.name);
