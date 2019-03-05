@@ -47,13 +47,15 @@ void *dlb_vec__grow(const void *buf, size_t len, size_t size);
 
 void *dlb_vec__grow(const void *buf, size_t len, size_t size) {
     DLB_ASSERT(dlb_vec_cap(buf) <= (SIZE_MAX - 1) / 2);
-    size_t capacity = MAX(16, MAX(1 + 2 * dlb_vec_cap(buf), len));
+    size_t capacity = MAX(16, MAX(2 * dlb_vec_cap(buf), len));
     DLB_ASSERT(len <= capacity);
     DLB_ASSERT(capacity <= (SIZE_MAX - sizeof(dlb_vec__hdr))/size);
     size_t new_size = sizeof(dlb_vec__hdr) + capacity * size;
     dlb_vec__hdr *vec;
     if (buf) {
         vec = dlb_realloc(dlb_vec__hdr(buf), new_size);
+        size_t old_size = sizeof(dlb_vec__hdr) + vec->cap * size;
+        memset((char *)vec + old_size, 0, new_size - old_size);
     } else {
         vec = dlb_calloc(1, new_size);
         vec->len = 0;
