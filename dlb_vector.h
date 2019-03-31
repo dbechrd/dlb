@@ -43,7 +43,9 @@ void *dlb_vec__grow(const void *buf, size_t len, size_t size);
 #define DLB_VECTOR_IMPLEMENTATION_DEF
 
 #include "dlb_types.h"
+#define DLB_MEMORY_IMPLEMENTATION
 #include "dlb_memory.h"
+#include <string.h>
 
 void *dlb_vec__grow(const void *buf, size_t len, size_t size) {
     DLB_ASSERT(dlb_vec_cap(buf) <= (SIZE_MAX - 1) / 2);
