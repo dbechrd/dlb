@@ -29,32 +29,30 @@ void MurmurHash3_x86_128(const void *key, int len, void *out);
 void MurmurHash3_x64_128(const void *key, int len, void *out);
 
 //-- dlb_hash.h ----------------------------------------------------------------
-struct dlb_hash_entry
+typedef struct
 {
     const char *key;
-    size_t klen;
+	int klen;
     void *value;
-};
+} dlb_hash_entry;
 
-struct dlb_hash
+typedef struct
 {
     const char *name;
-    size_t size;
-    struct dlb_hash_entry *buckets;
-};
+    u32 size;
+    dlb_hash_entry *buckets;
+} dlb_hash;
 
-void dlb_hash_init(struct dlb_hash *table, const char *name,
-                   size_t size_pow2);
-void dlb_hash_free(struct dlb_hash *table);
-void dlb_hash_insert(struct dlb_hash *table, const char *key, size_t klen,
-                     void *value);
-void *dlb_hash_search(struct dlb_hash *table, const char *key, size_t klen);
-void dlb_hash_delete(struct dlb_hash *table, const char *key, size_t klen);
+void dlb_hash_init(dlb_hash *table, const char *name, u32 size_pow2);
+void dlb_hash_free(dlb_hash *table);
+void dlb_hash_insert(dlb_hash *table, const char *key, int klen, void *value);
+void *dlb_hash_search(dlb_hash *table, const char *key, int klen);
+void dlb_hash_delete(dlb_hash *table, const char *key, int klen);
 
-static inline u32 hash_string(const char *str, size_t len)
+static inline u32 hash_string(const char *str, int len)
 {
     u32 hash;
-    MurmurHash3_x86_32(str, (int)len, &hash);
+    MurmurHash3_x86_32(str, len, &hash);
     return hash;
 }
 #endif
@@ -364,12 +362,12 @@ static u32 _dlb_hash_pow2(u32 x)
     return (x & (x - 1)) == 0;
 }
 
-void dlb_hash_init(struct dlb_hash *table, const char *name, size_t size_pow2)
+void dlb_hash_init(dlb_hash *table, const char *name, u32 size_pow2)
 {
     DLB_ASSERT(_dlb_hash_pow2(size_pow2));
     table->name = name;
 	table->size = size_pow2;
-    table->buckets = (struct dlb_hash_entry *)
+    table->buckets = (dlb_hash_entry *)
         dlb_calloc(table->size, sizeof(table->buckets[0]));
 
 #if DLB_HASH_DEBUG
@@ -377,7 +375,7 @@ void dlb_hash_init(struct dlb_hash *table, const char *name, size_t size_pow2)
 #endif
 }
 
-void dlb_hash_free(struct dlb_hash *table)
+void dlb_hash_free(dlb_hash *table)
 {
 #if DLB_HASH_DEBUG
     printf("[hash][free] %s\n", table->hnd.name);
@@ -386,15 +384,15 @@ void dlb_hash_free(struct dlb_hash *table)
     free(table->buckets);
 }
 
-static struct dlb_hash_entry *
-_dlb_hash_find(struct dlb_hash *table, const char *key, u32 klen,
-               struct dlb_hash_entry **first_freed, u8 return_first)
+static dlb_hash_entry *
+_dlb_hash_find(dlb_hash *table, const char *key, int klen,
+               dlb_hash_entry **first_freed, u8 return_first)
 {
     u32 hash = hash_string(key, klen);
     u32 index = hash % table->size;
     u32 i = 0;
 
-    struct dlb_hash_entry *entry = 0;
+    dlb_hash_entry *entry = 0;
 	for (;;)
 	{
 		entry = table->buckets + index;
@@ -434,14 +432,13 @@ _dlb_hash_find(struct dlb_hash *table, const char *key, u32 klen,
     return entry;
 }
 
-void dlb_hash_insert(struct dlb_hash *table, const char *key, size_t klen,
-                     void *value)
+void dlb_hash_insert(dlb_hash *table, const char *key, int klen, void *value)
 {
     DLB_ASSERT(key);
     DLB_ASSERT(klen);
 
-    struct dlb_hash_entry *first_freed = 0;
-    struct dlb_hash_entry *entry =
+    dlb_hash_entry *first_freed = 0;
+    dlb_hash_entry *entry =
         _dlb_hash_find(table, key, klen, &first_freed, 1);
 
     if (entry) {
@@ -455,15 +452,14 @@ void dlb_hash_insert(struct dlb_hash *table, const char *key, size_t klen,
         DLB_ASSERT(0);  // TODO: Realloc hash table
     }
 }
-void *dlb_hash_search(struct dlb_hash *table, const char *key, size_t klen)
+void *dlb_hash_search(dlb_hash *table, const char *key, int klen)
 {
     DLB_ASSERT(key);
     DLB_ASSERT(klen);
     void *value = NULL;
 
-    struct dlb_hash_entry *first_freed = 0;
-    struct dlb_hash_entry *entry =
-        _dlb_hash_find(table, key, klen, &first_freed, 0);
+    dlb_hash_entry *first_freed = 0;
+    dlb_hash_entry *entry = _dlb_hash_find(table, key, klen, &first_freed, 0);
 
     if (entry && entry->klen) {
         value = entry->value;
@@ -486,12 +482,12 @@ void *dlb_hash_search(struct dlb_hash *table, const char *key, size_t klen)
 // https://en.wikipedia.org/wiki/Lazy_deletion
 // https://attractivechaos.wordpress.com/2018/10/01/advanced-techniques-to-implement-fast-hash-tables/
 
-void dlb_hash_delete(struct dlb_hash *table, const char *key, size_t klen)
+void dlb_hash_delete(dlb_hash *table, const char *key, int klen)
 {
     DLB_ASSERT(key);
     DLB_ASSERT(klen);
 
-    struct dlb_hash_entry *entry = _dlb_hash_find(table, key, klen, 0, 0);
+    dlb_hash_entry *entry = _dlb_hash_find(table, key, klen, 0, 0);
 
     if (entry && entry->klen) {
         entry->key = _DLB_HASH_FREED;
@@ -511,8 +507,8 @@ void dlb_hash_delete(struct dlb_hash *table, const char *key, size_t klen)
 #define DLB_HASH_TEST_DEF
 
 static void dlb_hash_test() {
-    struct dlb_hash table_;
-    struct dlb_hash *table = &table_;
+    dlb_hash table_;
+    dlb_hash *table = &table_;
     dlb_hash_init(table, "hashtable", 4);
     const char key_1[] = "test key 1";
     const char key_2[] = "test key 2";

@@ -7,8 +7,8 @@
 #define DLB_VECTOR_H
 
 typedef struct dlb_vec__hdr {
-    size_t len;
-    size_t cap;
+    u32 len;
+	u32 cap;
 } dlb_vec__hdr;
 
 #define dlb_vec__hdr(b) ((dlb_vec__hdr *)((char *)b - sizeof(dlb_vec__hdr)))
@@ -17,7 +17,7 @@ typedef struct dlb_vec__hdr {
 #define dlb_vec_cap(b) ((b) ? dlb_vec__hdr(b)->cap : 0)
 #define dlb_vec_end(b) ((b) + dlb_vec_len(b))
 #define dlb_vec_last(b) (&(b)[dlb_vec__hdr(b)->len-1])
-//#define dlb_vec_sizeof(b) ((b) ? dlb_vec_len(b) * sizeof(*(b)) : 0)
+#define dlb_vec_size(b) ((b) ? dlb_vec_len(b) * sizeof(*(b)) : 0)
 #define dlb_vec_reserve(b, n) \
     ((n) <= dlb_vec_cap(b) ? 0 : ((b) = dlb_vec__grow((b), (n), sizeof(*(b)))))
 #define dlb_vec_push(b, ...) \
@@ -32,7 +32,7 @@ typedef struct dlb_vec__hdr {
 #define dlb_vec_clear(b) (dlb_vec_len(b) > 0 ? dlb_vec__hdr(b)->len = 0 : 0)
 #define dlb_vec_free(b) ((b) ? (free(dlb_vec__hdr(b)), (b) = NULL) : 0)
 
-void *dlb_vec__grow(const void *buf, size_t len, size_t size);
+void *dlb_vec__grow(const void *buf, u32 len, u32 size);
 
 #endif
 //-- end of header -------------------------------------------------------------
@@ -47,16 +47,16 @@ void *dlb_vec__grow(const void *buf, size_t len, size_t size);
 #include "dlb_memory.h"
 #include <string.h>
 
-void *dlb_vec__grow(const void *buf, size_t len, size_t size) {
+void *dlb_vec__grow(const void *buf, u32 len, u32 size) {
     DLB_ASSERT(dlb_vec_cap(buf) <= (SIZE_MAX - 1) / 2);
-    size_t capacity = MAX(16, MAX(2 * dlb_vec_cap(buf), len));
+    u32 capacity = MAX(16, MAX(2 * dlb_vec_cap(buf), len));
     DLB_ASSERT(len <= capacity);
     DLB_ASSERT(capacity <= (SIZE_MAX - sizeof(dlb_vec__hdr))/size);
-    size_t new_size = sizeof(dlb_vec__hdr) + capacity * size;
+    u32 new_size = sizeof(dlb_vec__hdr) + capacity * size;
     dlb_vec__hdr *vec;
     if (buf) {
         vec = dlb_realloc(dlb_vec__hdr(buf), new_size);
-        size_t old_size = sizeof(dlb_vec__hdr) + vec->cap * size;
+        u32 old_size = sizeof(dlb_vec__hdr) + vec->cap * size;
         memset((char *)vec + old_size, 0, new_size - old_size);
     } else {
         vec = dlb_calloc(1, new_size);
@@ -81,7 +81,7 @@ static void *dlb_vec_test()
     for (int i = 0; i < 1024; i++) {
         dlb_vec_push(store, i);
     }
-    for (size_t i = 0; i < dlb_vec_len(store); i++) {
+    for (u32 i = 0; i < dlb_vec_len(store); i++) {
         assert(store[i] == i);
     }
     dlb_vec_free(store);

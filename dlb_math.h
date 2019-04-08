@@ -36,10 +36,6 @@
 
 #define LERP(v0, v1, t) (1 - t) * v0 + t * v1
 
-#define KB(bytes) (1024 * bytes)
-#define MB(bytes) (1024 * KB(bytes))
-#define GB(bytes) (1024 * MB(bytes))
-
 #define MATH_EPSILON 0.0001f
 #define VEC3_EPSILON MATH_EPSILON
 #define MAT4_EPSILON MATH_EPSILON

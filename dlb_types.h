@@ -5,8 +5,8 @@
 // Basic type redefinitions
 //------------------------------------------------------------------------------
 #include <stdint.h>
-#include <stdbool.h>
 #include <assert.h>
+//#include <stdbool.h>
 // #include <stddef.h>
 // #include <limits.h>
 // #include <float.h>
@@ -35,8 +35,9 @@ typedef r32     real32;
 typedef r64     real64;
 typedef u32     bool32;
 
-//#define true 1
-//#define false 0
+#define bool u8
+#define true 1
+#define false 0
 
 // NOTE: internal and global are relative to translation unit
 #if 0
@@ -60,6 +61,10 @@ typedef u32     bool32;
 #define SIZEOF_MEMBER(type, member) sizeof(((type *)0)->member)
 #define STRING(s) (#s)
 #define CSTR(s) (s), sizeof(s) - 1
+
+#define KB(bytes) (1024 * bytes)
+#define MB(bytes) (1024 * KB(bytes))
+#define GB(bytes) (1024 * MB(bytes))
 
 // Note: Alignment must be power of 2
 #define ALIGN_DOWN(n, a) ((n) & ~((a) - 1))
@@ -86,7 +91,9 @@ DLB_assert_handler_def *DLB_assert_handler;
     else { \
         if (DLB_assert_handler) { \
             (*DLB_assert_handler)(#expr, __FILE__, __LINE__); \
-        } \
+        } else { \
+			assert(0); \
+		} \
     }
 
 static inline u16 endian_swap_u16(u16 val)

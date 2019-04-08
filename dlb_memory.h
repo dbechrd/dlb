@@ -11,6 +11,7 @@
 void *dlb_malloc(size_t size);
 void *dlb_calloc(size_t count, size_t size);
 void *dlb_realloc(void *block, size_t size);
+void dlb_free(void *block);
 
 #endif
 //-- end of header -------------------------------------------------------------
@@ -20,13 +21,14 @@ void *dlb_realloc(void *block, size_t size);
 #ifndef DLB_MEMORY_IMPLEMENTATION_DEF
 #define DLB_MEMORY_IMPLEMENTATION_DEF
 
+#include "dlb_types.h"
+
 void *dlb_malloc(size_t size)
 {
     void *block = malloc(size);
     if (!block)
     {
-        perror("xmalloc error");
-        exit(1);
+        DLB_ASSERT(!"dlb_malloc error");
     }
     return block;
 }
@@ -36,21 +38,27 @@ void *dlb_calloc(size_t count, size_t size)
     void *block = calloc(count, size);
     if (!block)
     {
-        perror("xcalloc error");
-        exit(1);
+		DLB_ASSERT(!"dlb_malloc error");
     }
     return block;
 }
 
 void *dlb_realloc(void *block, size_t size)
 {
-    block = realloc(block, size);
-    if (!block)
+    void *block_new = realloc(block, size);
+    if (!block_new)
     {
-        perror("xrealloc error");
-        exit(1);
+		DLB_ASSERT(!"dlb_malloc error");
     }
-    return block;
+    return block_new;
+}
+
+void dlb_free(void *block)
+{
+	if (block)
+    {
+		free(block);
+	}
 }
 
 #endif
