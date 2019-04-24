@@ -23,7 +23,7 @@ void dlb_free(void *block);
 
 #include "dlb_types.h"
 
-void *dlb_malloc(size_t size)
+void *dlb_malloc(u32 size)
 {
     void *block = malloc(size);
     if (!block)
@@ -33,7 +33,7 @@ void *dlb_malloc(size_t size)
     return block;
 }
 
-void *dlb_calloc(size_t count, size_t size)
+void *dlb_calloc(u32 count, u32 size)
 {
     void *block = calloc(count, size);
     if (!block)
@@ -43,7 +43,7 @@ void *dlb_calloc(size_t count, size_t size)
     return block;
 }
 
-void *dlb_realloc(void *block, size_t size)
+void *dlb_realloc(void *block, u32 size)
 {
     void *block_new = realloc(block, size);
     if (!block_new)
