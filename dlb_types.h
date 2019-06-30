@@ -59,9 +59,11 @@ typedef u32     bool32;
 #define ABS(x) (((x) > 0) ? (x) : -(x))
 #define ARRAY_COUNT(a) (sizeof(a) / sizeof(a[0]))
 #define SIZEOF_MEMBER(type, member) sizeof(((type *)0)->member)
+#define SIZEOF_MEMBER_ARRAY(type, member) sizeof(*(((type *)0)->member))
 #define OFFSETOF(s,m) ((size_t)&(((s*)0)->m))
-#define STRING(s) (#s)
+#define STRING(s) #s
 #define CSTR(s) (s), sizeof(s) - 1
+#define IFNULL(a, b) ((a) ? (a) : (b))
 
 #define KB(bytes) (1024 * bytes)
 #define MB(bytes) (1024 * KB(bytes))
@@ -76,7 +78,7 @@ typedef u32     bool32;
 #define DLB_ASSERT_HANDLER(name) \
     void name(const char *expr, const char *filename, u32 line)
 typedef DLB_ASSERT_HANDLER(dlb_assert_handler_def);
-dlb_assert_handler_def *dlb_assert_handler;
+extern dlb_assert_handler_def *dlb_assert_handler;
 
 /*
 // NOT SAFE TO USE IN WINDOWS 10, CAUSES ENTIRE OS TO HANG

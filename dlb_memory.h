@@ -6,12 +6,14 @@
 #ifndef DLB_MEMORY_H
 #define DLB_MEMORY_H
 
-#include <stdlib.h>
+#include "dlb_types.h"
 
-void *dlb_malloc(size_t size);
-void *dlb_calloc(size_t count, size_t size);
-void *dlb_realloc(void *block, size_t size);
+void *dlb_malloc(u32 size);
+void *dlb_calloc(u32 count, u32 size);
+void *dlb_realloc(void *block, u32 size);
 void dlb_free(void *block);
+void dlb_memcpy(void *dst, const void *src, u32 size);
+void dlb_memset(void *dst, u8 val, u32 size);
 
 #endif
 //-- end of header -------------------------------------------------------------
@@ -21,7 +23,7 @@ void dlb_free(void *block);
 #ifndef DLB_MEMORY_IMPLEMENTATION_DEF
 #define DLB_MEMORY_IMPLEMENTATION_DEF
 
-#include "dlb_types.h"
+#include <stdlib.h>
 
 void *dlb_malloc(u32 size)
 {
@@ -59,6 +61,20 @@ void dlb_free(void *block)
     {
 		free(block);
 	}
+}
+
+void dlb_memcpy(void *dst, const void *src, u32 size)
+{
+    for (size_t i = 0; i < size; i++) {
+        ((u8 *)dst)[i] = ((u8 *)src)[i];
+    }
+}
+
+void dlb_memset(void *dst, u8 val, u32 size)
+{
+    for (size_t i = 0; i < size; i++) {
+        ((u8 *)dst)[i] = val;
+    }
 }
 
 #endif
