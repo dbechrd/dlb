@@ -35,7 +35,7 @@ typedef r32     real32;
 typedef r64     real64;
 typedef u32     bool32;
 
-#define bool u8
+#define bool s32
 #define true 1
 #define false 0
 

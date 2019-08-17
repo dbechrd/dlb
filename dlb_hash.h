@@ -7,6 +7,7 @@
 #define DLB_HASH_H
 
 #include "dlb_types.h"
+#include <stdio.h>
 
 //-- Murmurhash3.h -------------------------------------------------------------
 // MurmurHash3 was written by Austin Appleby, and is placed in the public
@@ -48,13 +49,14 @@ typedef struct
     const char *name;
     u32 size;
     dlb_hash_entry *buckets;
+	FILE *debug;
 } dlb_hash;
 
 void dlb_hash_init(dlb_hash *table, dlb_hash_type type, const char *name,
 	u32 size_pow2);
 void dlb_hash_free(dlb_hash *table);
 void dlb_hash_insert(dlb_hash *table, const void *key, int klen, void *value);
-void *dlb_hash_search(dlb_hash *table, const void *key, int klen);
+void *dlb_hash_search(dlb_hash *table, const void *key, int klen, int *found);
 void dlb_hash_delete(dlb_hash *table, const void *key, int klen);
 
 static inline u32 hash_code(const void *key, int len)
@@ -377,21 +379,23 @@ void dlb_hash_init(dlb_hash *table, dlb_hash_type type, const char *name,
 	table->type = type;
     table->name = name;
 	table->size = size_pow2;
-    table->buckets = (dlb_hash_entry *)
-        dlb_calloc(table->size, sizeof(table->buckets[0]));
-
-#if DLB_HASH_DEBUG
-    printf("[hash][init] %s\n", table->hnd.name);
+    table->buckets = (dlb_hash_entry *)dlb_calloc(table->size,
+		sizeof(table->buckets[0]));
+#if _DEBUG
+	if (table->debug) {
+		fprintf(table->debug, "[hash][init] %s\n", table->name);
+	}
 #endif
 }
 
 void dlb_hash_free(dlb_hash *table)
 {
-#if DLB_HASH_DEBUG
-    printf("[hash][free] %s\n", table->hnd.name);
+#if _DEBUG
+	if (table->debug) {
+		fprintf(table->debug, "[hash][free] %s\n", table->name);
+	}
 #endif
-
-    free(table->buckets);
+	free(table->buckets);
 }
 
 static dlb_hash_entry *
@@ -408,8 +412,14 @@ _dlb_hash_find(dlb_hash *table, const void *key, int klen,
 			break;
 		default: DLB_ASSERT(0);
 	}
-    u32 index = hash % table->size;
+    u32 index = hash & (table->size - 1);
     u32 i = 0;
+
+#if _DEBUG
+	if (table->debug) {
+		fprintf(table->debug, "[hash][find] finding slot for %.*s, hash %u, starting at %d\n", klen, (char *)key, hash, index);
+	}
+#endif
 
     dlb_hash_entry *entry = 0;
 	for (;;) {
@@ -423,8 +433,18 @@ _dlb_hash_find(dlb_hash *table, const void *key, int klen,
                 } else if (first_freed && !*first_freed) {
                     *first_freed = entry;
                 }
-            } else {
-                break;
+#if _DEBUG
+				if (table->debug) {
+					fprintf(table->debug, "[hash][find] %u is empty (FREED)\n", index);
+				}
+#endif
+			} else {
+#if _DEBUG
+				if (table->debug && !return_first) {
+					fprintf(table->debug, "[hash][find] %u is empty\n", index);
+				}
+#endif
+				break;
             }
 		}
 
@@ -447,8 +467,8 @@ _dlb_hash_find(dlb_hash *table, const void *key, int klen,
 
 		// Next slot
         i++;
-        index += i * (i + 1) / 2;  // Same as (0.5f)i + (0.5f)i^2
-        index %= table->size;
+        index += (i * (i + 1)) >> 1;  // Same as (0.5f)i + (0.5f)i^2
+        index &= (table->size - 1);
 
         // NOTE(perf): This check will check entire hash table if power-of-two
         //             size. This would be a good place to enforce max probes.
@@ -459,6 +479,12 @@ _dlb_hash_find(dlb_hash *table, const void *key, int klen,
 		}
 	}
 
+#if _DEBUG
+	if (table->debug) {
+		fprintf(table->debug, "[hash][find] found slot at %d\n", index);
+	}
+#endif
+
     return entry;
 }
 
@@ -466,6 +492,12 @@ void dlb_hash_insert(dlb_hash *table, const void *key, int klen, void *value)
 {
     DLB_ASSERT(key);
     DLB_ASSERT(klen);
+
+#if _DEBUG
+	if (table->debug) {
+		fprintf(table->debug, "[hash][insert] inserting value %p for key %.*s\n", value, klen, (char *)key);
+	}
+#endif
 
     dlb_hash_entry *first_freed = 0;
     dlb_hash_entry *entry =
@@ -482,17 +514,25 @@ void dlb_hash_insert(dlb_hash *table, const void *key, int klen, void *value)
         DLB_ASSERT(!"DLB_HASH: Out of memory");  // TODO: Realloc hash table
     }
 }
-void *dlb_hash_search(dlb_hash *table, const void *key, int klen)
+void *dlb_hash_search(dlb_hash *table, const void *key, int klen, int *found)
 {
+#if _DEBUG
+	if (table->debug) {
+		fprintf(table->debug, "[hash][search_start] searching for key %*.s\n", klen, (char *)key);
+	}
+#endif
+
     DLB_ASSERT(key);
     DLB_ASSERT(klen);
     void *value = NULL;
+	int value_found = 0;
 
     dlb_hash_entry *first_freed = 0;
     dlb_hash_entry *entry = _dlb_hash_find(table, key, klen, &first_freed, 0);
 
     if (entry && entry->klen) {
-        value = entry->value;
+		value = entry->value;
+		value_found = 1;
 
         // Optimize by pushing entry into first free slot
         if (first_freed) {
@@ -505,7 +545,18 @@ void *dlb_hash_search(dlb_hash *table, const void *key, int klen)
         }
     }
 
-    return value;
+#if _DEBUG
+	if (table->debug) {
+		if (value_found) {
+			fprintf(table->debug, "[hash][search_end] found value %p\n", value);
+		} else {
+			fprintf(table->debug, "[hash][search_end] not found\n");
+		}
+	}
+#endif
+
+	if (found) *found = value_found;
+	return value;
 }
 
 // Possible improvements:
@@ -537,7 +588,7 @@ void dlb_hash_delete(dlb_hash *table, const void *key, int klen)
 #define DLB_HASH_TEST_DEF
 
 static void dlb_hash_test() {
-    dlb_hash table_;
+	dlb_hash table_ = { 0 };
     dlb_hash *table = &table_;
     dlb_hash_init(table, DLB_HASH_STRING, "hashtable", 4);
     const char key_1[] = "test key 1";
@@ -554,33 +605,33 @@ static void dlb_hash_test() {
     const char *search_2;
     const char *search_3;
 
-    search_1 = dlb_hash_search(table, CSTR(key_1));
-    search_2 = dlb_hash_search(table, CSTR(key_2));
-    search_3 = dlb_hash_search(table, CSTR(key_3));
+    search_1 = dlb_hash_search(table, CSTR(key_1), 0);
+    search_2 = dlb_hash_search(table, CSTR(key_2), 0);
+    search_3 = dlb_hash_search(table, CSTR(key_3), 0);
     DLB_ASSERT(search_1 == val_1);
     DLB_ASSERT(search_2 == val_2);
     DLB_ASSERT(search_3 == val_3);
 
     dlb_hash_delete(table, CSTR(key_1));
-    search_1 = dlb_hash_search(table, CSTR(key_1));
-    search_2 = dlb_hash_search(table, CSTR(key_2));
-    search_3 = dlb_hash_search(table, CSTR(key_3));
+    search_1 = dlb_hash_search(table, CSTR(key_1), 0);
+    search_2 = dlb_hash_search(table, CSTR(key_2), 0);
+    search_3 = dlb_hash_search(table, CSTR(key_3), 0);
     DLB_ASSERT(search_1 == 0);
     DLB_ASSERT(search_2 == val_2);
     DLB_ASSERT(search_3 == val_3);
 
     dlb_hash_delete(table, CSTR(key_2));
-    search_1 = dlb_hash_search(table, CSTR(key_1));
-    search_2 = dlb_hash_search(table, CSTR(key_2));
-    search_3 = dlb_hash_search(table, CSTR(key_3));
+    search_1 = dlb_hash_search(table, CSTR(key_1), 0);
+    search_2 = dlb_hash_search(table, CSTR(key_2), 0);
+    search_3 = dlb_hash_search(table, CSTR(key_3), 0);
     DLB_ASSERT(search_1 == 0);
     DLB_ASSERT(search_2 == 0);
     DLB_ASSERT(search_3 == val_3);
 
     dlb_hash_delete(table, CSTR(key_3));
-    search_1 = dlb_hash_search(table, CSTR(key_1));
-    search_2 = dlb_hash_search(table, CSTR(key_2));
-    search_3 = dlb_hash_search(table, CSTR(key_3));
+    search_1 = dlb_hash_search(table, CSTR(key_1), 0);
+    search_2 = dlb_hash_search(table, CSTR(key_2), 0);
+    search_3 = dlb_hash_search(table, CSTR(key_3), 0);
     DLB_ASSERT(search_1 == 0);
     DLB_ASSERT(search_2 == 0);
     DLB_ASSERT(search_3 == 0);
