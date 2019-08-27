@@ -59,7 +59,7 @@ void dlb_hash_insert(dlb_hash *table, const void *key, int klen, void *value);
 void *dlb_hash_search(dlb_hash *table, const void *key, int klen, int *found);
 void dlb_hash_delete(dlb_hash *table, const void *key, int klen);
 
-static inline u32 hash_code(const void *key, int len)
+static inline u32 dlb_hash_code(const void *key, int len)
 {
     u32 hash;
     MurmurHash3_x86_32(key, len, &hash);
@@ -405,10 +405,10 @@ _dlb_hash_find(dlb_hash *table, const void *key, int klen,
     u32 hash = 0;
 	switch (table->type) {
 		case DLB_HASH_STRING:
-			hash = hash_code(key, klen);
+			hash = dlb_hash_code(key, klen);
 			break;
 		case DLB_HASH_INT:
-			hash = hash_code(&key, klen);
+			hash = dlb_hash_code(&key, klen);
 			break;
 		default: DLB_ASSERT(0);
 	}
