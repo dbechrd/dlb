@@ -65,7 +65,7 @@ static inline u8 dlb_bitset_get(dlb_bitset *bitset, u32 index)
 #ifndef DLB_BITSET_IMPLEMENTATION_DEF
 #define DLB_BITSET_IMPLEMENTATION_DEF
 
-// None for not, all inlined
+// None for now, all inlined
 
 #endif
 #endif
