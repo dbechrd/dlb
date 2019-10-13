@@ -7,54 +7,53 @@
 #define DLB_BITSET_H
 
 #include "dlb_types.h"
-#include "dlb_vector.h"
 
 // Store a bunch of flags as bits
 typedef struct dlb_bitset {
+    u32 size;
     u32 *bitmaps;
 } dlb_bitset;
 
 static inline void dlb_bitset_reserve(dlb_bitset *bitset, u32 size)
 {
-    dlb_vec_reserve(bitset->bitmaps, size);
+    bitset->size = size;
+    bitset->bitmaps = dlb_calloc(size >> 6, sizeof(*bitset->bitmaps));
 }
 
 static inline void dlb_bitset_free(dlb_bitset *bitset)
 {
-    dlb_vec_free(bitset->bitmaps);
+    dlb_free(bitset->bitmaps);
+    bitset->size = 0;
 }
 
 static inline void dlb_bitset_set(dlb_bitset *bitset, u32 index)
 {
     u32 bitmap_idx = index >> 6;
+    if (bitmap_idx >= bitset->size) {
+        DLB_ASSERT(0);  // TODO: realloc
+    }
     u8 bitmap_mask = 1 << (index & 0x1f);
-
-    u32 bitmaps_len = dlb_vec_len(bitset->bitmaps);
-    DLB_ASSERT(bitmap_idx < bitmaps_len);
-
     bitset->bitmaps[bitmap_idx] |= bitmap_mask;
 }
 
 static inline void dlb_bitset_unset(dlb_bitset *bitset, u32 index)
 {
     u32 bitmap_idx = index >> 6;
-    u8 bitmap_mask = 1 << (index & 0x1f);
-
-    u32 bitmaps_len = dlb_vec_len(bitset->bitmaps);
-    DLB_ASSERT(bitmap_idx < bitmaps_len);
-
-    bitset->bitmaps[bitmap_idx] &= !bitmap_mask;
+    if (bitmap_idx < bitset->size) {
+        u8 bitmap_mask = 1 << (index & 0x1f);
+        bitset->bitmaps[bitmap_idx] &= !bitmap_mask;
+    }
 }
 
 static inline u8 dlb_bitset_get(dlb_bitset *bitset, u32 index)
 {
     u32 bitmap_idx = index >> 6;
-    u8 bitmap_mask = 1 << (index & 0x1f);
-
-    u32 bitmaps_len = dlb_vec_len(bitset->bitmaps);
-    DLB_ASSERT(bitmap_idx < bitmaps_len);
-
-    return bitset->bitmaps[bitmap_idx] & bitmap_mask;
+    if (bitmap_idx < bitset->size) {
+        u8 bitmap_mask = 1 << (index & 0x1f);
+        return bitset->bitmaps[bitmap_idx] & bitmap_mask;
+    } else {
+        return 0;
+    }
 }
 
 #endif
