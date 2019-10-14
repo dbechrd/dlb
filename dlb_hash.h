@@ -395,7 +395,7 @@ void dlb_hash_free(dlb_hash *table)
 		fprintf(table->debug, "[hash][free] %s\n", table->name);
 	}
 #endif
-	free(table->buckets);
+	dlb_free(table->buckets);
 }
 
 static dlb_hash_entry *
