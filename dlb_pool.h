@@ -10,6 +10,8 @@
 #include "dlb_memory.h"
 
 // Fixed-size pool with intrusive free list
+// NOTE: sparse_set could be a hash table rather than direct indexing with
+// empty slots, but cost of hashing and space overhead is not a clear win.
 typedef struct dlb_pool {
     u32 capacity;       // number of slots allocated
     u32 size;           // number of slots occupied
