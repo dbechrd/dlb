@@ -74,7 +74,7 @@ static inline u8 dlb_bitset_get(dlb_bitset *bitset, u32 index)
 #ifndef DLB_BITSET_TEST_DEF
 #define DLB_BITSET_TEST_DEF
 
-static void *dlb_bitset_test()
+static void dlb_bitset_test()
 {
     dlb_bitset bitset = { 0 };
     dlb_bitset_reserve(&bitset, 64);

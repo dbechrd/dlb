@@ -63,7 +63,7 @@ static inline void *dlb_pool_alloc(dlb_pool *pool, u32 id)
     }
     DLB_ASSERT(pool->size < pool->capacity);
 
-    void *ptr = dlb_pool_at(pool, pool->size);
+    void *ptr = (u8 *)pool->dense_data + pool->elem_size * pool->size;
     pool->sparse_set[id] = pool->size;
     pool->dense_set[pool->size] = id;
     pool->size++;
@@ -137,12 +137,6 @@ void dlb_pool_reserve(dlb_pool *pool, u32 capacity)
         pool->dense_set = dlb_calloc(pool->capacity, sizeof(*pool->dense_set));
         pool->dense_data = dlb_calloc(pool->capacity, pool->elem_size);
     }
-
-    // Initialize intrusive freelist
-    for (u32 i = old_capacity; i < pool->capacity; ++i) {
-        dlb_id *id = pool->sparse_set[i];
-        id->index = i + 1;
-    }
 }
 
 #endif
@@ -153,7 +147,7 @@ void dlb_pool_reserve(dlb_pool *pool, u32 capacity)
 #ifndef DLB_POOL_TEST_DEF
 #define DLB_POOL_TEST_DEF
 
-static void *dlb_pool_test()
+static void dlb_pool_test()
 {
     struct some_data {
         u32 foo;
@@ -161,7 +155,7 @@ static void *dlb_pool_test()
     };
 
     dlb_pool pool = { 0 };
-    dlb_pool_init(&pool, sizeof(struct some_data));
+    dlb_pool_init(&pool, sizeof(struct some_data), 10);
     //dlb_pool
     dlb_pool_free(&pool);
 }
