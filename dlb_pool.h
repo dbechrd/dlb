@@ -16,8 +16,8 @@ typedef struct dlb_pool {
     u32 capacity;       // number of slots allocated
     u32 size;           // number of slots occupied
     u32 elem_size;      // size of each element in dense set
-    u32 *sparse_set;    // uid -> dense index (do not reorder, do not shrink)
-    u32 *dense_set;     // dense set of uids
+    u32 *sparse_set;    // id -> dense index (do not reorder, do not shrink)
+    u32 *dense_set;     // dense set of ids
     void *dense_data;   // tightly packed data for fast iteration
 } dlb_pool;
 
