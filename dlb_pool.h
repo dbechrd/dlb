@@ -1,141 +1,142 @@
+#ifndef DLB_INDEX_H
+#define DLB_INDEX_H
 //------------------------------------------------------------------------------
 // Copyright 2019 Dan Bechard
 //------------------------------------------------------------------------------
 
 //-- header --------------------------------------------------------------------
-#ifndef DLB_POOL_H
-#define DLB_POOL_H
-
 #include "dlb_types.h"
 #include "dlb_memory.h"
+#include "dlb_hash.h"
 
-// Fixed-size pool with intrusive free list
-// NOTE: sparse_set could be a hash table rather than direct indexing with
-// empty slots, but cost of hashing and space overhead is not a clear win.
-typedef struct dlb_pool {
-    u32 capacity;       // number of slots allocated
-    u32 size;           // number of slots occupied
-    u32 elem_size;      // size of each element in dense set
-    u32 *sparse_set;    // id -> dense index (do not reorder, do not shrink)
-    u32 *dense_set;     // dense set of ids
-    void *dense_data;   // tightly packed data for fast iteration
-} dlb_pool;
+typedef struct dlb_index {
+    u32 buckets_count;
+    u32 *buckets;
+    u32 chains_count;
+    u32 *chains;
+    u32 grow_by;
+} dlb_index;
 
-void dlb_pool_reserve(dlb_pool *pool, u32 capacity);
+void dlb_index_reserve(dlb_index *index, u32 buckets_count);
 
-static inline void dlb_pool_init(dlb_pool *pool, u32 elem_size, u32 capacity)
+static inline void dlb_index_init(dlb_index *index, u32 buckets_count, u32 grow_by)
 {
     // Elements must be at least large enough to hold a freelist
-    pool->elem_size = elem_size;
-    dlb_pool_reserve(pool, capacity);
+    dlb_index_reserve(index, buckets_count);
+    index->grow_by = grow_by ? grow_by : index->buckets_count;
+}
+
+static inline void dlb_index_find(dlb_index *index, const char *key, u32 klen)
+{
+
 }
 
 // WARNING: Direct access to dense array. Should only be used for fast iteration
-static inline void *dlb_pool_at(dlb_pool *pool, u32 dense_index)
-{
-    DLB_ASSERT(pool->dense_data);
-    DLB_ASSERT(dense_index < pool->size);
-
-    void *ptr = (u8 *)pool->dense_data + pool->elem_size * dense_index;
-    return ptr;
-}
+//static inline void *dlb_index_at(dlb_index *index, u32 dense_index)
+//{
+//    DLB_ASSERT(index->dense_data);
+//    DLB_ASSERT(dense_index < index->size);
+//
+//    void *ptr = (u8 *)index->dense_data + index->elem_size * dense_index;
+//    return ptr;
+//}
 
 // Retrieve by id, safest access pattern (verfies dense_set match)
-static inline void *dlb_pool_by_id(dlb_pool *pool, u32 id)
-{
-    DLB_ASSERT(pool->sparse_set);
-    DLB_ASSERT(id < pool->capacity);
-    u32 dense_index = pool->sparse_set[id];
+//static inline void *dlb_index_by_id(dlb_index *index, u32 id)
+//{
+//    DLB_ASSERT(index->sparse_set);
+//    DLB_ASSERT(id < index->capacity);
+//    u32 dense_index = index->sparse_set[id];
+//
+//    DLB_ASSERT(index->dense_set);
+//    DLB_ASSERT(dense_index < index->size);
+//    void *ptr = 0;
+//    if (index->dense_set[dense_index] == id) {
+//        ptr = dlb_index_at(pool, dense_index);
+//    }
+//    return ptr;
+//}
 
-    DLB_ASSERT(pool->dense_set);
-    DLB_ASSERT(dense_index < pool->size);
-    void *ptr = 0;
-    if (pool->dense_set[dense_index] == id) {
-        ptr = dlb_pool_at(pool, dense_index);
+static inline void *dlb_index_alloc(dlb_index *index, u32 id)
+{
+    if (index->size == index->capacity) {
+        dlb_index_reserve(pool, index->capacity + index->grow_by);
     }
+    DLB_ASSERT(index->size < index->capacity);
+
+    void *ptr = (u8 *)index->dense_data + index->elem_size * index->size;
+    index->sparse_set[id] = index->size;
+    index->dense_set[index->size] = id;
+    index->size++;
     return ptr;
 }
 
-static inline void *dlb_pool_alloc(dlb_pool *pool, u32 id)
+static inline bool dlb_index_delete(dlb_index *index, u32 id)
 {
-    if (pool->size == pool->capacity) {
-        dlb_pool_reserve(pool, pool->capacity << 1);
-    }
-    DLB_ASSERT(pool->size < pool->capacity);
+    DLB_ASSERT(index->sparse_set);
+    DLB_ASSERT(id < index->capacity);
+    u32 dense_index = index->sparse_set[id];
 
-    void *ptr = (u8 *)pool->dense_data + pool->elem_size * pool->size;
-    pool->sparse_set[id] = pool->size;
-    pool->dense_set[pool->size] = id;
-    pool->size++;
-    return ptr;
-}
-
-static inline bool dlb_pool_delete(dlb_pool *pool, u32 id)
-{
-    DLB_ASSERT(pool->sparse_set);
-    DLB_ASSERT(id < pool->capacity);
-    u32 dense_index = pool->sparse_set[id];
-
-    DLB_ASSERT(pool->dense_set);
-    DLB_ASSERT(dense_index < pool->size);
-    pool->size--;
+    DLB_ASSERT(index->dense_set);
+    DLB_ASSERT(dense_index < index->size);
+    index->size--;
 
     bool found = false;
-    if (pool->dense_set[dense_index] == id) {
+    if (index->dense_set[dense_index] == id) {
         found = true;
-        void *ptr = dlb_pool_at(pool, dense_index);
-        void *last_ptr = dlb_pool_at(pool, pool->size);
+        void *ptr = dlb_index_at(pool, dense_index);
+        void *last_ptr = dlb_index_at(pool, index->size);
 
         if (ptr != last_ptr) {
             // Compact (move last element to newly empty slot)
-            u32 last_id = pool->dense_set[pool->size];
-            pool->sparse_set[last_id] = dense_index;
-            pool->dense_set[dense_index] = last_id;
-            dlb_memcpy(ptr, last_ptr, pool->elem_size);
+            u32 last_id = index->dense_set[index->size];
+            index->sparse_set[last_id] = dense_index;
+            index->dense_set[dense_index] = last_id;
+            dlb_memcpy(ptr, last_ptr, index->elem_size);
         }
 
         // TODO(perf): None of this is actually necessary, just doing for debug
         // Clear deleted slot (invalidate sets)
-        pool->sparse_set[id] = 0xC0FFEE42;         // anything >= pool->size
-        pool->dense_set[pool->size] = 0xC0FFEE42;  // anything >= pool->size
-        dlb_memset(last_ptr, 0, pool->elem_size);
+        index->sparse_set[id] = 0xC0FFEE42;         // anything >= index->size
+        index->dense_set[index->size] = 0xC0FFEE42;  // anything >= index->size
+        dlb_memset(last_ptr, 0, index->elem_size);
     }
     return found;
 }
 
-static inline void dlb_pool_free(dlb_pool *pool)
+static inline void dlb_index_free(dlb_index *index)
 {
-    dlb_free(pool->sparse_set);
-    dlb_free(pool->dense_set);
-    dlb_free(pool->dense_data);
+    dlb_free(index->sparse_set);
+    dlb_free(index->dense_set);
+    dlb_free(index->dense_data);
 }
 
 #endif
 //-- end of header -------------------------------------------------------------
 
 //-- implementation ------------------------------------------------------------
-#ifdef DLB_POOL_IMPLEMENTATION
-#ifndef DLB_POOL_IMPLEMENTATION_DEF
-#define DLB_POOL_IMPLEMENTATION_DEF
+#ifdef DLB_INDEX_IMPLEMENTATION
+#ifndef DLB_INDEX_IMPLEMENTATION_DEF
+#define DLB_INDEX_IMPLEMENTATION_DEF
 
-void dlb_pool_reserve(dlb_pool *pool, u32 capacity)
+void dlb_index_reserve(dlb_index *index, u32 buckets_count)
 {
-    if (!capacity) {
+    if (!buckets_count) {
         capacity = 16;
     }
 
-    DLB_ASSERT(capacity > pool->capacity);
-    u32 old_capacity = pool->capacity;
-    pool->capacity = capacity;
+    DLB_ASSERT(capacity > index->capacity);
+    u32 old_capacity = index->capacity;
+    index->capacity = capacity;
 
-    if (pool->sparse_set) {
-        pool->sparse_set = dlb_realloc(pool->sparse_set, pool->capacity * sizeof(*pool->sparse_set));
-        pool->dense_set = dlb_realloc(pool->dense_set, pool->capacity * sizeof(*pool->dense_set));
-        pool->dense_data = dlb_realloc(pool->dense_data, pool->capacity * pool->elem_size);
+    if (index->sparse_set) {
+        index->sparse_set = dlb_realloc(index->sparse_set, index->capacity * sizeof(*index->sparse_set));
+        index->dense_set = dlb_realloc(index->dense_set, index->capacity * sizeof(*index->dense_set));
+        index->dense_data = dlb_realloc(index->dense_data, index->capacity * index->elem_size);
     } else {
-        pool->sparse_set = dlb_calloc(pool->capacity, sizeof(*pool->sparse_set));
-        pool->dense_set = dlb_calloc(pool->capacity, sizeof(*pool->dense_set));
-        pool->dense_data = dlb_calloc(pool->capacity, pool->elem_size);
+        index->sparse_set = dlb_calloc(index->capacity, sizeof(*index->sparse_set));
+        index->dense_set = dlb_calloc(index->capacity, sizeof(*index->dense_set));
+        index->dense_data = dlb_calloc(index->capacity, index->elem_size);
     }
 }
 
@@ -143,21 +144,20 @@ void dlb_pool_reserve(dlb_pool *pool, u32 capacity)
 #endif
 
 //-- tests ---------------------------------------------------------------------
-#ifdef DLB_POOL_TEST
-#ifndef DLB_POOL_TEST_DEF
-#define DLB_POOL_TEST_DEF
+#ifdef DLB_INDEX_TEST
+#ifndef DLB_INDEX_TEST_DEF
+#define DLB_INDEX_TEST_DEF
 
-static void dlb_pool_test()
+static void dlb_index_test()
 {
     struct some_data {
         u32 foo;
         u32 bar;
     };
 
-    dlb_pool pool = { 0 };
-    dlb_pool_init(&pool, sizeof(struct some_data), 10);
-    //dlb_pool
-    dlb_pool_free(&pool);
+    dlb_index pool = { 0 };
+    dlb_index_init(&pool, 128, 0);
+    dlb_index_free(&pool);
 }
 
 #endif
