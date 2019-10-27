@@ -31,6 +31,12 @@ static inline uint32_t dlb_murmur3(const void *key, int len)
     MurmurHash3_x86_32(key, len, &hash);
     return hash;
 }
+
+// Reduce an evenly distributed value in (0, 2^32) to (0, N). Replaces modulus.
+// https://lemire.me/blog/2016/06/27/a-fast-alternative-to-the-modulo-reduction/
+static inline uint32_t dlb_reduce(uint32_t x, uint32_t N) {
+    return ((uint64_t)x * (uint64_t)N) >> 32;
+}
 //-----------------------------------------------------------------------------
 
 #endif // _MURMURHASH3_H_

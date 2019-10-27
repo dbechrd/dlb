@@ -101,6 +101,7 @@ void *dlb_vec__grow(const void *buf, u32 len, u32 size) {
     }
     hdr->cap = new_cap;
     u8 *new_buf = (u8 *)hdr + sizeof(dlb_vec__hdr);
+    DLB_ASSERT(new_buf);
     return new_buf;
 }
 
