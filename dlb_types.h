@@ -33,7 +33,7 @@ typedef u32     uint32;
 typedef u64     uint64;
 typedef r32     real32;
 typedef r64     real64;
-typedef u32     bool32;
+//typedef u32     bool32;
 
 #define bool s32
 #define true 1
