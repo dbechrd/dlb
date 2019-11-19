@@ -19,6 +19,7 @@ typedef struct dlb_vec__hdr {
     ((b) ? ((dlb_vec__hdr *)((u8 *)b - sizeof(dlb_vec__hdr))) : 0)
 
 #define dlb_vec_len(b) ((b) ? dlb_vec_hdr(b)->len : 0)
+#define dlb_vec_used_bytes(b) ((b) ? dlb_vec_len(b) * sizeof(*(b)) : 0)
 #define dlb_vec_cap(b) ((b) ? dlb_vec_hdr(b)->cap : 0)
 #define dlb_vec_end(b) ((b) + dlb_vec_len(b))
 #define dlb_vec_end_size(b, s) ((u8 *)(b) + dlb_vec_len(b) * s)
@@ -27,7 +28,7 @@ typedef struct dlb_vec__hdr {
 #define dlb_vec_last(b) (&(b)[dlb_vec_hdr(b)->len-1])
 #define dlb_vec_last_size(b, s) (void *)((u8 *)(b) + (s) * (dlb_vec_hdr(b)->len-1))
 #define dlb_vec_index_size(b, i, s) (void *)((u8 *)(b) + (s) * (i))
-#define dlb_vec_size(b) ((b) ? dlb_vec_cap(b) * sizeof(*(b)) : 0)
+#define dlb_vec_reserved_bytes(b) ((b) ? dlb_vec_cap(b) * sizeof(*(b)) : 0)
 #define dlb_vec_reserve(b, n) \
     ((n) <= dlb_vec_cap(b) ? 0 : ((b) = dlb_vec__grow((b), (n), sizeof(*(b)))))
 #define dlb_vec_reserve_size(b, n, s) \
@@ -63,7 +64,7 @@ typedef struct dlb_vec__hdr {
 #define dlb_vec_clear(b) (dlb_vec_len(b) > 0 ? dlb_vec_hdr(b)->len = 0 : 0)
 #define dlb_vec_zero(b) \
     (dlb_vec_cap(b) > 0 ? \
-        (dlb_memset(b, 0, dlb_vec_size(b)), \
+        (dlb_memset(b, 0, dlb_vec_reserved_bytes(b)), \
         dlb_vec_hdr(b)->len = 0) \
     : 0)
 #define dlb_vec_free(b) ((b) ? (dlb_free(dlb_vec_hdr(b)), (b) = NULL) : 0)
