@@ -1,11 +1,10 @@
+#ifndef DLB_RAND_H
+#define DLB_RAND_H
 //------------------------------------------------------------------------------
 // Copyright 2018 Dan Bechard
 //------------------------------------------------------------------------------
 
 //-- header --------------------------------------------------------------------
-#ifndef DLB_RAND_H
-#define DLB_RAND_H
-
 #include "dlb_types.h"
 
 //-- mersenne-twister.h -------------------------------------------------------------
@@ -42,10 +41,15 @@ u32 dlb_rand_u32();
 #endif
 //-- end of header -------------------------------------------------------------
 
+#ifdef __INTELLISENSE__
+/* This makes MSVC intellisense work. */
+#define DLB_RAND_IMPLEMENTATION
+#endif
+
 //-- implementation ------------------------------------------------------------
 #ifdef DLB_RAND_IMPLEMENTATION
-#ifndef DLB_RAND_IMPLEMENTATION_DEF
-#define DLB_RAND_IMPLEMENTATION_DEF
+#ifndef DLB_RAND_IMPL_INTERNAL
+#define DLB_RAND_IMPL_INTERNAL
 
 //-- mersenne-twister.c --------------------------------------------------------
 /*
@@ -223,16 +227,17 @@ u32 dlb_rand_u32()
 {
     return mersenne_rand_u32();
 }
+
 #endif
 #endif
+//-- end of implementation -----------------------------------------------------
 
 //-- tests ---------------------------------------------------------------------
 #ifdef DLB_RAND_TEST
-#ifndef DLB_RAND_TEST_DEF
-#define DLB_RAND_TEST_DEF
 
 static void dlb_rand_test() {
     // TODO: Write some tests
 }
+
 #endif
-#endif
+//-- end of tests --------------------------------------------------------------

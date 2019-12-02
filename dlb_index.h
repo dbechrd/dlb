@@ -89,19 +89,24 @@ static inline void dlb_index_free(dlb_index *store)
 #endif
 //-- end of header -------------------------------------------------------------
 
+#ifdef __INTELLISENSE__
+/* This makes MSVC intellisense work. */
+#define DLB_INDEX_IMPLEMENTATION
+#endif
+
 //-- implementation ------------------------------------------------------------
 #ifdef DLB_INDEX_IMPLEMENTATION
-#ifndef DLB_INDEX_IMPLEMENTATION_DEF
-#define DLB_INDEX_IMPLEMENTATION_DEF
+#ifndef DLB_INDEX_IMPL_INTERNAL
+#define DLB_INDEX_IMPL_INTERNAL
 
+// None for now, all inlined
 
 #endif
 #endif
+//-- end of implementation -----------------------------------------------------
 
 //-- tests ---------------------------------------------------------------------
 #ifdef DLB_INDEX_TEST
-#ifndef DLB_INDEX_TEST_DEF
-#define DLB_INDEX_TEST_DEF
 
 static void dlb_index_test()
 {
@@ -111,4 +116,4 @@ static void dlb_index_test()
 }
 
 #endif
-#endif
+//-- end of tests --------------------------------------------------------------

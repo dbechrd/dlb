@@ -1,11 +1,10 @@
+#ifndef DLB_ARENA_H
+#define DLB_ARENA_H
 //------------------------------------------------------------------------------
 // Copyright 2018 Dan Bechard
 //------------------------------------------------------------------------------
 
 //-- header --------------------------------------------------------------------
-#ifndef DLB_ARENA_H
-#define DLB_ARENA_H
-
 #include "dlb_memory.h"
 #include "dlb_vector.h"
 
@@ -25,10 +24,15 @@ void dlb_arena_free(dlb_arena *arena);
 #endif
 //-- end of header -------------------------------------------------------------
 
+#ifdef __INTELLISENSE__
+/* This makes MSVC intellisense work. */
+#define DLB_ARENA_IMPLEMENTATION
+#endif
+
 //-- implementation ------------------------------------------------------------
 #ifdef DLB_ARENA_IMPLEMENTATION
-#ifndef DLB_ARENA_IMPLEMENTATION_DEF
-#define DLB_ARENA_IMPLEMENTATION_DEF
+#ifndef DLB_ARENA_IMPL_INTERNAL
+#define DLB_ARENA_IMPL_INTERNAL
 
 void dlb_arena__grow(dlb_arena *arena, size_t min_size) {
     size_t size = ALIGN_UP(MAX(DLB_ARENA_BLOCK_SIZE, min_size),
@@ -59,3 +63,4 @@ void dlb_arena_free(dlb_arena *arena) {
 
 #endif
 #endif
+//-- end of implementation -----------------------------------------------------

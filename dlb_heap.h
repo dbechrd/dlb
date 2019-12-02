@@ -1,11 +1,10 @@
+#ifndef DLB_HEAP_H
+#define DLB_HEAP_H
 //------------------------------------------------------------------------------
 // Copyright 2018 Dan Bechard
 //------------------------------------------------------------------------------
 
 //-- header --------------------------------------------------------------------
-#ifndef DLB_HEAP_H
-#define DLB_HEAP_H
-
 #include "dlb_vector.h"
 
 //typedef int (*dlb_heap_comparer)(void *a, void *b);
@@ -23,10 +22,15 @@ typedef struct dlb_heap {
 #endif
 //-- end of header -------------------------------------------------------------
 
+#ifdef __INTELLISENSE__
+/* This makes MSVC intellisense work. */
+#define DLB_HEAP_IMPLEMENTATION
+#endif
+
 //-- implementation ------------------------------------------------------------
 #ifdef DLB_HEAP_IMPLEMENTATION
-#ifndef DLB_HEAP_IMPLEMENTATION_DEF
-#define DLB_HEAP_IMPLEMENTATION_DEF
+#ifndef DLB_HEAP_IMPL_INTERNAL
+#define DLB_HEAP_IMPL_INTERNAL
 
 void dlb_heap_init(dlb_heap *heap)
 {
@@ -139,3 +143,4 @@ void *dlb_heap_pop(dlb_heap *heap)
 
 #endif
 #endif
+//-- end of implementation -----------------------------------------------------

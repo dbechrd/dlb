@@ -1,9 +1,15 @@
-//-----------------------------------------------------------------------------
-// MurmurHash3 was written by Austin Appleby, and is placed in the public
-// domain. The author hereby disclaims copyright to this source code.
-
 #ifndef DLB_MURMUR3_H
 #define DLB_MURMUR3_H
+//------------------------------------------------------------------------------
+// Copyright 2019 Dan Bechard
+//------------------------------------------------------------------------------
+
+//-- header --------------------------------------------------------------------
+// Reduce an evenly distributed value in (0, 2^32) to (0, N). Replaces modulus.
+// https://lemire.me/blog/2016/06/27/a-fast-alternative-to-the-modulo-reduction/
+static inline uint32_t dlb_reduce(uint32_t x, uint32_t N) {
+    return ((uint64_t)x * (uint64_t)N) >> 32;
+}
 
 //-- Murmurhash3.h -------------------------------------------------------------
 // MurmurHash3 was written by Austin Appleby, and is placed in the public
@@ -31,21 +37,20 @@ static inline uint32_t dlb_murmur3(const void *key, int len)
     MurmurHash3_x86_32(key, len, &hash);
     return hash;
 }
-
-// Reduce an evenly distributed value in (0, 2^32) to (0, N). Replaces modulus.
-// https://lemire.me/blog/2016/06/27/a-fast-alternative-to-the-modulo-reduction/
-static inline uint32_t dlb_reduce(uint32_t x, uint32_t N) {
-    return ((uint64_t)x * (uint64_t)N) >> 32;
-}
 //-----------------------------------------------------------------------------
 
-#endif // _MURMURHASH3_H_
+#endif
 //-- end of header -------------------------------------------------------------
+
+#ifdef __INTELLISENSE__
+/* This makes MSVC intellisense work. */
+#define DLB_MURMUR3_IMPLEMENTATION
+#endif
 
 //-- implementation ------------------------------------------------------------
 #ifdef DLB_MURMUR3_IMPLEMENTATION
-#ifndef DLB_MURMUR3_IMPLEMENTATION_DEF
-#define DLB_MURMUR3_IMPLEMENTATION_DEF
+#ifndef DLB_MURMUR3_IMPL_INTERNAL
+#define DLB_MURMUR3_IMPL_INTERNAL
 
 //-- MurmurHash3.c -------------------------------------------------------------
 // MurmurHash3 was written by Austin Appleby, and is placed in the public
@@ -333,7 +338,7 @@ void MurmurHash3_x64_128(const void *key, int len, void *out)
     ((uint64_t*)out)[0] = h1;
     ((uint64_t*)out)[1] = h2;
 }
-//-----------------------------------------------------------------------------
 
 #endif
 #endif
+//-- end of implementation -----------------------------------------------------

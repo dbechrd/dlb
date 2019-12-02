@@ -1,11 +1,10 @@
+#ifndef DLB_HASH_H
+#define DLB_HASH_H
 //------------------------------------------------------------------------------
 // Copyright 2018 Dan Bechard
 //------------------------------------------------------------------------------
 
 //-- header --------------------------------------------------------------------
-#ifndef DLB_HASH_H
-#define DLB_HASH_H
-
 #include "dlb_types.h"
 #include "dlb_murmur3.h"
 #include <stdio.h>
@@ -42,10 +41,15 @@ void dlb_hash_delete(dlb_hash *table, const void *key, int klen);
 #endif
 //-- end of header -------------------------------------------------------------
 
+#ifdef __INTELLISENSE__
+/* This makes MSVC intellisense work. */
+#define DLB_HASH_IMPLEMENTATION
+#endif
+
 //-- implementation ------------------------------------------------------------
 #ifdef DLB_HASH_IMPLEMENTATION
-#ifndef DLB_HASH_IMPLEMENTATION_DEF
-#define DLB_HASH_IMPLEMENTATION_DEF
+#ifndef DLB_HASH_IMPL_INTERNAL
+#define DLB_HASH_IMPL_INTERNAL
 
 #include "dlb_memory.h"
 #include <string.h>
@@ -267,11 +271,10 @@ void dlb_hash_delete(dlb_hash *table, const void *key, int klen)
 
 #endif
 #endif
+//-- end of implementation -----------------------------------------------------
 
 //-- tests ---------------------------------------------------------------------
 #ifdef DLB_HASH_TEST
-#ifndef DLB_HASH_TEST_DEF
-#define DLB_HASH_TEST_DEF
 
 static void dlb_hash_test() {
     dlb_hash table_ = { 0 };
@@ -324,5 +327,6 @@ static void dlb_hash_test() {
 
     dlb_hash_free(table);
 }
+
 #endif
-#endif
+//-- end of tests --------------------------------------------------------------

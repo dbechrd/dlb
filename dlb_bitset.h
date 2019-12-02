@@ -1,11 +1,10 @@
+#ifndef DLB_BITSET_H
+#define DLB_BITSET_H
 //------------------------------------------------------------------------------
 // Copyright 2019 Dan Bechard
 //------------------------------------------------------------------------------
 
 //-- header --------------------------------------------------------------------
-#ifndef DLB_BITSET_H
-#define DLB_BITSET_H
-
 #include "dlb_types.h"
 
 // Store a bunch of flags as bits
@@ -59,20 +58,24 @@ static inline u8 dlb_bitset_get(dlb_bitset *bitset, u32 index)
 #endif
 //-- end of header -------------------------------------------------------------
 
+#ifdef __INTELLISENSE__
+/* This makes MSVC intellisense work. */
+#define DLB_BITSET_IMPLEMENTATION
+#endif
+
 //-- implementation ------------------------------------------------------------
 #ifdef DLB_BITSET_IMPLEMENTATION
-#ifndef DLB_BITSET_IMPLEMENTATION_DEF
-#define DLB_BITSET_IMPLEMENTATION_DEF
+#ifndef DLB_BITSET_IMPL_INTERNAL
+#define DLB_BITSET_IMPL_INTERNAL
 
 // None for now, all inlined
 
 #endif
 #endif
+//-- end of implementation -----------------------------------------------------
 
 //-- tests ---------------------------------------------------------------------
 #ifdef DLB_BITSET_TEST
-#ifndef DLB_BITSET_TEST_DEF
-#define DLB_BITSET_TEST_DEF
 
 static void dlb_bitset_test()
 {
@@ -89,4 +92,4 @@ static void dlb_bitset_test()
 }
 
 #endif
-#endif
+//-- end of tests --------------------------------------------------------------

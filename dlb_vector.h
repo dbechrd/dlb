@@ -1,11 +1,10 @@
+#ifndef DLB_VECTOR_H
+#define DLB_VECTOR_H
 //------------------------------------------------------------------------------
 // Copyright 2018 Dan Bechard
 //------------------------------------------------------------------------------
 
 //-- header --------------------------------------------------------------------
-#ifndef DLB_VECTOR_H
-#define DLB_VECTOR_H
-
 #include "dlb_types.h"
 #include "dlb_memory.h"
 
@@ -74,10 +73,15 @@ void *dlb_vec__grow(const void *buf, u32 len, u32 size);
 #endif
 //-- end of header -------------------------------------------------------------
 
+#ifdef __INTELLISENSE__
+/* This makes MSVC intellisense work. */
+#define DLB_VECTOR_IMPLEMENTATION
+#endif
+
 //-- implementation ------------------------------------------------------------
 #ifdef DLB_VECTOR_IMPLEMENTATION
-#ifndef DLB_VECTOR_IMPLEMENTATION_DEF
-#define DLB_VECTOR_IMPLEMENTATION_DEF
+#ifndef DLB_VECTOR_IMPL_INTERNAL
+#define DLB_VECTOR_IMPL_INTERNAL
 
 #include "dlb_types.h"
 #define DLB_MEMORY_IMPLEMENTATION
@@ -108,11 +112,10 @@ void *dlb_vec__grow(const void *buf, u32 len, u32 size) {
 
 #endif
 #endif
+//-- end of implementation -----------------------------------------------------
 
 //-- tests ---------------------------------------------------------------------
 #ifdef DLB_VECTOR_TEST
-#ifndef DLB_VECTOR_TEST_DEF
-#define DLB_VECTOR_TEST_DEF
 
 static void *dlb_vec_test()
 {
@@ -127,4 +130,4 @@ static void *dlb_vec_test()
 }
 
 #endif
-#endif
+//-- end of tests --------------------------------------------------------------
