@@ -64,7 +64,6 @@ typedef r64     real64;
 #define STRING(s) #s
 #define CSTR(s) (s), sizeof(s) - 1
 #define IFNULL(a, b) ((a) ? (a) : (b))
-#define TOGGLE(x) (x) = !(x)
 
 #define KB(bytes) (1024 * bytes)
 #define MB(bytes) (1024 * KB(bytes))
