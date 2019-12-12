@@ -10,7 +10,7 @@
 
 typedef struct dlb_vec__hdr {
     u32 len;
-	u32 cap;
+    u32 cap;
     u8 fixed;  // If true, fixed-size buffer that asserts when full
 } dlb_vec__hdr;
 

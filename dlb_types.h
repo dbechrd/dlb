@@ -94,10 +94,10 @@ extern dlb_assert_handler_def *dlb_assert_handler;
     else { \
         if (dlb_assert_handler) { \
             (*dlb_assert_handler)(#expr, __FILE__, __LINE__); \
-			assert(0); \
+            assert(0); \
         } else { \
-			assert(0); \
-		} \
+            assert(0); \
+        } \
     }
 
 static inline u16 endian_swap_u16(u16 val)

@@ -14,12 +14,12 @@ struct dlb_string
 
 static inline u32 dlb_strlen(const char *str)
 {
-	u32 len = 0;
+    u32 len = 0;
     while (*str++)
     {
         len++;
     }
-	return len;
+    return len;
 }
 
 static inline char *dlb_strsep_c(char **stringp, const char delim)
@@ -95,8 +95,8 @@ struct dlb_string *dlb_string_alloc(const char *str)
 }
 
 typedef struct Intern {
-	size_t len;
-	const char *str;
+    size_t len;
+    const char *str;
 } Intern;
 
 Arena str_arena;
@@ -104,22 +104,22 @@ Intern *interns;
 
 const char *str_intern_range(const char *start, const char *end)
 {
-	size_t len = end - start;
-	for (Intern *it = interns; it != buf_end(interns); it++) {
-		if (it->len == len && strncmp(it->str, start, len) == 0) {
-			return it->str;
-		}
-	}
-	char *str = arena_alloc(&str_arena, len + 1);
-	memcpy(str, start, len);
-	str[len] = 0;
-	buf_push(interns, (Intern) { len, str });
-	return str;
+    size_t len = end - start;
+    for (Intern *it = interns; it != buf_end(interns); it++) {
+        if (it->len == len && strncmp(it->str, start, len) == 0) {
+            return it->str;
+        }
+    }
+    char *str = arena_alloc(&str_arena, len + 1);
+    memcpy(str, start, len);
+    str[len] = 0;
+    buf_push(interns, (Intern) { len, str });
+    return str;
 }
 
 const char *str_intern(const char *str)
 {
-	return str_intern_range(str, str + strlen(str));
+    return str_intern_range(str, str + strlen(str));
 }
 #endif
 
