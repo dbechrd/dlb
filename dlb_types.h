@@ -53,7 +53,7 @@ typedef r64     real64;
 #define ENUM_META(e, str) str,
 
 // Useful macros
-#define UNUSED(x) ((void)x)
+#define UNUSED(x) ((void)(x))
 #define MIN(a, b) ((a) < (b) ? (a) : (b))
 #define MAX(a, b) ((a) > (b) ? (a) : (b))
 #define ABS(x) (((x) > 0) ? (x) : -(x))
