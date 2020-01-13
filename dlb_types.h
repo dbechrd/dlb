@@ -75,11 +75,6 @@ typedef r64     real64;
 #define ALIGN_DOWN_PTR(p, a) ((void *)ALIGN_DOWN((uintptr_t)(p), (a)))
 #define ALIGN_UP_PTR(p, a) ((void *)ALIGN_UP((uintptr_t)(p), (a)))
 
-#define DLB_ASSERT_HANDLER(name) \
-    void name(const char *expr, const char *filename, u32 line)
-typedef DLB_ASSERT_HANDLER(dlb_assert_handler_def);
-extern dlb_assert_handler_def *dlb_assert_handler;
-
 /*
 // NOT SAFE TO USE IN WINDOWS 10, CAUSES ENTIRE OS TO HANG
 #if defined(_MSC_VER)
@@ -88,17 +83,6 @@ extern dlb_assert_handler_def *dlb_assert_handler;
     #define DLB_DEBUG_BREAK __builtin_trap()
 #endif
 */
-
-#define DLB_ASSERT(expr) \
-    if (expr) { } \
-    else { \
-        if (dlb_assert_handler) { \
-            (*dlb_assert_handler)(#expr, __FILE__, __LINE__); \
-            assert(0); \
-        } else { \
-            assert(0); \
-        } \
-    }
 
 static inline u16 endian_swap_u16(u16 val)
 {
@@ -127,5 +111,27 @@ static inline void swap_int(int *a, int *b)
     *a = *b;
     *b = t;
 }
-
 #endif
+
+//------------------------------------------------------------------------------
+// HACK: I have no idea why this doesn't work when it's inside of the #include
+// guards for unity builds... Defining this multiple times doesn't really hurt
+// anything, so... fuck it.
+//------------------------------------------------------------------------------
+#define DLB_ASSERT_HANDLER(name) \
+    void name(const char *expr, const char *filename, u32 line)
+typedef DLB_ASSERT_HANDLER(dlb_assert_handler_def);
+//extern dlb_assert_handler_def *dlb_assert_handler;
+extern dlb_assert_handler_def *dlb_assert_handler;
+
+#define DLB_ASSERT(expr) \
+    if (expr) { } \
+    else { \
+        if (dlb_assert_handler) { \
+            (*dlb_assert_handler)(#expr, __FILE__, __LINE__); \
+            assert(0); \
+        } else { \
+            assert(0); \
+        } \
+    }
+//------------------------------------------------------------------------------
