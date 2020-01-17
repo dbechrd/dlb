@@ -9,16 +9,18 @@
 #include "dlb_memory.h"
 
 typedef struct dlb_vec__hdr {
-    u32 len;
-    u32 cap;
-    u8 fixed;  // If true, fixed-size buffer that asserts when full
+    u32 len;        // current # of elements
+    u32 cap;        // capacity in # of elements
+    u32 elem_size;  // size of each element
+    u8 fixed;       // If true, fixed-size buffer that asserts when full
 } dlb_vec__hdr;
 
 #define dlb_vec_hdr(b) \
     ((b) ? ((dlb_vec__hdr *)((u8 *)b - sizeof(dlb_vec__hdr))) : 0)
 
 #define dlb_vec_len(b) ((b) ? dlb_vec_hdr(b)->len : 0)
-#define dlb_vec_used_bytes(b) ((b) ? dlb_vec_len(b) * sizeof(*(b)) : 0)
+#define dlb_vec_elem_size(b) ((b) ? dlb_vec_hdr(b)->elem_size : 0)
+#define dlb_vec_size(b) ((b) ? dlb_vec_len(b) * dlb_vec_elem_size(b) : 0)
 #define dlb_vec_cap(b) ((b) ? dlb_vec_hdr(b)->cap : 0)
 #define dlb_vec_end(b) ((b) + dlb_vec_len(b))
 #define dlb_vec_end_size(b, s) ((u8 *)(b) + dlb_vec_len(b) * s)
@@ -87,24 +89,25 @@ void *dlb_vec__grow(const void *buf, u32 len, u32 size);
 #define DLB_MEMORY_IMPLEMENTATION
 #include "dlb_memory.h"
 
-void *dlb_vec__grow(const void *buf, u32 len, u32 size) {
+void *dlb_vec__grow(const void *buf, u32 len, u32 elem_size) {
     dlb_vec__hdr *hdr = dlb_vec_hdr(buf);
     u32 cap = dlb_vec_cap(buf);
     DLB_ASSERT(cap <= (SIZE_MAX - 1) / 2);
     u32 new_cap = MAX(16, MAX(2 * cap, len));
     DLB_ASSERT(len <= new_cap);
-    DLB_ASSERT(new_cap <= (SIZE_MAX - sizeof(dlb_vec__hdr))/size);
-    u32 new_size = sizeof(dlb_vec__hdr) + new_cap * size;
+    DLB_ASSERT(new_cap <= (SIZE_MAX - sizeof(dlb_vec__hdr))/elem_size);
+    u32 new_size = sizeof(dlb_vec__hdr) + new_cap * elem_size;
     if (hdr) {
         DLB_ASSERT(!hdr->fixed);
         hdr = dlb_realloc(hdr, new_size);
-        u32 old_size = sizeof(dlb_vec__hdr) + hdr->cap * size;
+        u32 old_size = sizeof(dlb_vec__hdr) + hdr->cap * elem_size;
         dlb_memset((u8 *)hdr + old_size, 0, new_size - old_size);
     } else {
         hdr = dlb_calloc(1, new_size);
         hdr->len = 0;
     }
     hdr->cap = new_cap;
+    hdr->elem_size = elem_size;
     u8 *new_buf = (u8 *)hdr + sizeof(dlb_vec__hdr);
     DLB_ASSERT(new_buf);
     return new_buf;
