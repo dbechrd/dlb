@@ -5,38 +5,37 @@
 //------------------------------------------------------------------------------
 
 //-- header --------------------------------------------------------------------
-#include "dlb_types.h"
 #include "dlb_memory.h"
 
 typedef struct dlb_vec__hdr {
-    u32 len;        // current # of elements
-    u32 cap;        // capacity in # of elements
-    u32 elem_size;  // size of each element
-    u8 fixed;       // If true, fixed-size buffer that asserts when full
+    size_t len;        // current # of elements
+    size_t cap;        // capacity in # of elements (0 = fixed length)
+    size_t elem_size;  // size of each element
 } dlb_vec__hdr;
 
-#define dlb_vec_hdr(b) \
-    ((b) ? ((dlb_vec__hdr *)((u8 *)b - sizeof(dlb_vec__hdr))) : 0)
-
+#define dlb_vec_hdr(b) ((b) ? ((dlb_vec__hdr *)b - 1) : 0)
 #define dlb_vec_len(b) ((b) ? dlb_vec_hdr(b)->len : 0)
+#define dlb_vec_cap(b) ((b) ? ( \
+        dlb_vec_hdr(b)->cap ? dlb_vec_hdr(b)->cap : dlb_vec_len(b) \
+    ) : 0)
 #define dlb_vec_elem_size(b) ((b) ? dlb_vec_hdr(b)->elem_size : 0)
+
 #define dlb_vec_size(b) ((b) ? dlb_vec_len(b) * dlb_vec_elem_size(b) : 0)
-#define dlb_vec_cap(b) ((b) ? dlb_vec_hdr(b)->cap : 0)
 #define dlb_vec_end(b) ((b) + dlb_vec_len(b))
-#define dlb_vec_end_size(b, s) ((u8 *)(b) + dlb_vec_len(b) * s)
+#define dlb_vec_end_size(b, s) (void *)((char *)(b) + dlb_vec_len(b) * s)
 #define dlb_vec_each(t, i, b) for (t (i) = (b); (i) != dlb_vec_end(((t)b)); (i)++)
 #define dlb_vec_range(t, i, s, e) for (t (i) = (s); (i) != (e); (i)++)
-#define dlb_vec_last(b) (&(b)[dlb_vec_hdr(b)->len-1])
-#define dlb_vec_last_size(b, s) (void *)((u8 *)(b) + (s) * (dlb_vec_hdr(b)->len-1))
-#define dlb_vec_index_size(b, i, s) (void *)((u8 *)(b) + (s) * (i))
+#define dlb_vec_last(b) (&(b)[dlb_vec_len(b) - 1])
+#define dlb_vec_last_size(b, s) (void *)((char *)(b) + (s) * (dlb_vec_len(b) - 1))
+#define dlb_vec_index_size(b, i, s) (void *)((char *)(b) + (s) * (i))
 #define dlb_vec_reserved_bytes(b) ((b) ? dlb_vec_cap(b) * sizeof(*(b)) : 0)
 #define dlb_vec_reserve(b, n) \
     ((n) <= dlb_vec_cap(b) ? 0 : ((b) = dlb_vec__grow((b), (n), sizeof(*(b)))))
 #define dlb_vec_reserve_size(b, n, s) \
     ((n) <= dlb_vec_cap(b) ? 0 : ((b) = dlb_vec__grow((b), (n), (s))))
 #define dlb_vec_reserve_fixed(b, n) \
-    (dlb_vec_reserve(b, n), dlb_vec_hdr(b)->fixed = 1)
-#define dlb_vec_fixed(b) (dlb_vec_hdr(b)->fixed)
+    (dlb_vec_reserve(b, n), dlb_vec_hdr(b)->cap = 0)
+#define dlb_vec_fixed(b) (dlb_vec_hdr(b)->cap == 0)
 #define dlb_vec_push(b, ...) \
     (dlb_vec_reserve((b), 1 + dlb_vec_len(b)), \
     ((b)[dlb_vec_hdr(b)->len++] = (__VA_ARGS__)), \
@@ -53,7 +52,7 @@ typedef struct dlb_vec__hdr {
 #define dlb_vec_pop(b) \
     (dlb_vec_len(b) > 0 ? \
         dlb_vec_hdr(b)->len--, \
-        (&(b)[dlb_vec_hdr(b)->len]) \
+        (&(b)[dlb_vec_len(b)]) \
     : 0)
 // Pop & zero last element, returns true on success, false if empty
 #define dlb_vec_popz(b) \
@@ -70,7 +69,7 @@ typedef struct dlb_vec__hdr {
     : 0)
 #define dlb_vec_free(b) ((b) ? (dlb_free(dlb_vec_hdr(b)), (b) = NULL) : 0)
 
-void *dlb_vec__grow(const void *buf, u32 len, u32 size);
+void *dlb_vec__grow(const void *buf, size_t len, size_t elem_size);
 
 #endif
 //-- end of header -------------------------------------------------------------
@@ -89,26 +88,26 @@ void *dlb_vec__grow(const void *buf, u32 len, u32 size);
 #define DLB_MEMORY_IMPLEMENTATION
 #include "dlb_memory.h"
 
-void *dlb_vec__grow(const void *buf, u32 len, u32 elem_size) {
+void *dlb_vec__grow(const void *buf, size_t len, size_t elem_size) {
     dlb_vec__hdr *hdr = dlb_vec_hdr(buf);
-    u32 cap = dlb_vec_cap(buf);
+    size_t cap = dlb_vec_cap(buf);
     DLB_ASSERT(cap <= (SIZE_MAX - 1) / 2);
-    u32 new_cap = MAX(16, MAX(2 * cap, len));
+    size_t new_cap = MAX(16, MAX(2 * cap, len));
     DLB_ASSERT(len <= new_cap);
     DLB_ASSERT(new_cap <= (SIZE_MAX - sizeof(dlb_vec__hdr))/elem_size);
-    u32 new_size = sizeof(dlb_vec__hdr) + new_cap * elem_size;
+    size_t new_size = sizeof(dlb_vec__hdr) + new_cap * elem_size;
     if (hdr) {
-        DLB_ASSERT(!hdr->fixed);
+        size_t old_size = sizeof(dlb_vec__hdr) + hdr->cap * elem_size;
+        DLB_ASSERT(old_size);  // if 0, hdr->cap is 0 and it's a fixed array
         hdr = dlb_realloc(hdr, new_size);
-        u32 old_size = sizeof(dlb_vec__hdr) + hdr->cap * elem_size;
-        dlb_memset((u8 *)hdr + old_size, 0, new_size - old_size);
+        dlb_memset((char *)hdr + old_size, 0, new_size - old_size);
     } else {
         hdr = dlb_calloc(1, new_size);
         hdr->len = 0;
     }
     hdr->cap = new_cap;
     hdr->elem_size = elem_size;
-    u8 *new_buf = (u8 *)hdr + sizeof(dlb_vec__hdr);
+    char *new_buf = (char *)hdr + sizeof(dlb_vec__hdr);
     DLB_ASSERT(new_buf);
     return new_buf;
 }
