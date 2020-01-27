@@ -62,7 +62,8 @@ typedef r64     real64;
 #define SIZEOF_MEMBER_ARRAY(type, member) sizeof(*(((type *)0)->member))
 #define OFFSETOF(s,m) ((size_t)&(((s*)0)->m))
 #define STRING(s) #s
-#define CSTR(s) (s), sizeof(s) - 1
+#define CSTR(s) (s), sizeof(s) - 1  // without terminator
+#define CSTR0(s) (s), sizeof(s)     // with nil terminator
 #define IFNULL(a, b) ((a) ? (a) : (b))
 
 #define KB(bytes) (1024 * bytes)
