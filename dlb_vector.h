@@ -40,6 +40,7 @@ typedef struct dlb_vec__hdr {
     (dlb_vec_reserve((b), 1 + dlb_vec_len(b)), \
     ((b)[dlb_vec_hdr(b)->len++] = (__VA_ARGS__)), \
     dlb_vec_last(b))
+
 #define dlb_vec_alloc(b) \
     (dlb_vec_reserve((b), 1 + dlb_vec_len(b)), \
     dlb_vec_hdr(b)->len++, \
@@ -125,6 +126,7 @@ static void *dlb_vec_test()
     for (int i = 0; i < 1024; i++) {
         dlb_vec_push(store, i);
     }
+    assert(dlb_vec_len(store) == 1024);
     for (u32 i = 0; i < dlb_vec_len(store); i++) {
         assert(store[i] == i);
     }
