@@ -49,6 +49,13 @@ typedef struct dlb_vec__hdr {
     (dlb_vec_reserve_size((b), 1 + dlb_vec_len(b), (s)), \
     dlb_vec_hdr(b)->len++, \
     dlb_vec_last_size(b, s))
+#define dlb_vec_alloc_count(b, n) \
+    (dlb_vec_reserve((b), n + dlb_vec_len(b)), \
+    dlb_vec_hdr(b)->len += n)
+#define dlb_vec_alloc_count_size(b, n, s) \
+    (dlb_vec_reserve_size((b), n + dlb_vec_len(b), (s)), \
+    dlb_vec_hdr(b)->len += n)
+
 // Pop & return pointer to last element, returns 0 if empty
 #define dlb_vec_pop(b) \
     (dlb_vec_len(b) > 0 ? \
