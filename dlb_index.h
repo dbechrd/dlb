@@ -9,7 +9,7 @@
 #include "dlb_memory.h"
 #include "dlb_murmur3.h"
 
-#define DLB_INDEX_EMPTY UINT32_MAX
+#define DLB_INDEX_EMPTY SIZE_MAX
 
 typedef struct dlb_index {
     size_t buckets_count;
