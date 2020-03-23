@@ -28,15 +28,15 @@
 /*
 * Extract a pseudo-random unsigned 32-bit integer in the range 0 ... UINT32_MAX
 */
-u32 mersenne_rand_u32();
+//u32 mersenne_rand_u32();
 
 /*
 * Initialize Mersenne Twister with given seed value.
 */
-void mersenne_seed(u32 seed_value);
+//void mersenne_seed(u32 seed_value);
 
 //-- dlb_rand.h ----------------------------------------------------------------
-void dlb_rand_seed();
+void dlb_rand_seed(u32 value);
 u32 dlb_rand_u32();
 #endif
 //-- end of header -------------------------------------------------------------
@@ -155,13 +155,13 @@ static void mersenne_generate_numbers()
     }
 
     // Temper all numbers in a batch
-    for (size_t i = 0; i < MERSENNE_SIZE; ++i) {
-        y = mt_state.MT[i];
+    for (size_t i2 = 0; i2 < MERSENNE_SIZE; ++i2) {
+        y = mt_state.MT[i2];
         y ^= y >> 11;
         y ^= y << 7 & 0x9d2c5680;
         y ^= y << 15 & 0xefc60000;
         y ^= y >> 18;
-        mt_state.MT_TEMPERED[i] = y;
+        mt_state.MT_TEMPERED[i2] = y;
     }
 
     mt_state.index = 0;
