@@ -13,6 +13,7 @@ static inline void *dlb_malloc(size_t size)
     void *block = malloc(size);
     if (!block) {
         assert(!"dlb_malloc error");
+        exit(-404);
     }
     return block;
 }
@@ -22,6 +23,7 @@ static inline void *dlb_calloc(size_t count, size_t size)
     void *block = calloc(count, size);
     if (!block) {
         assert(!"dlb_malloc error");
+        exit(-404);
     }
     return block;
 }
@@ -31,6 +33,7 @@ static inline void *dlb_realloc(void *block, size_t size)
     void *block_new = realloc(block, size);
     if (!block_new) {
         assert(!"dlb_malloc error");
+        exit(-404);
     }
     return block_new;
 }
