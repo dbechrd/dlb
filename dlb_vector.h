@@ -36,9 +36,13 @@ typedef struct dlb_vec__hdr {
 #define dlb_vec_reserve_fixed(b, n) \
     (dlb_vec_reserve(b, n), dlb_vec_hdr(b)->cap = 0)
 #define dlb_vec_fixed(b) ((b) ? dlb_vec_hdr(b)->cap == 0 : 0)
-#define dlb_vec_push(b, ...) \
+//#define dlb_vec_push(b, ...) \
+//    (dlb_vec_reserve((b), 1 + dlb_vec_len(b)), \
+//    ((b)[dlb_vec_hdr(b)->len++] = (__VA_ARGS__)), \
+//    dlb_vec_last(b))
+#define dlb_vec_push(b, v) \
     (dlb_vec_reserve((b), 1 + dlb_vec_len(b)), \
-    ((b)[dlb_vec_hdr(b)->len++] = (__VA_ARGS__)), \
+    ((b)[dlb_vec_hdr(b)->len++] = (v)), \
     dlb_vec_last(b))
 
 #define dlb_vec_alloc(b) \
