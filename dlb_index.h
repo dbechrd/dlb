@@ -36,6 +36,9 @@ static inline void dlb_index_init(dlb_index *store, size_t buckets, size_t chain
 
 static inline size_t dlb_index_first(dlb_index *store, u32 hash)
 {
+    if (!store->buckets_count) {
+        return DLB_INDEX_EMPTY;
+    }
     size_t bucket = dlb_reduce(hash, store->buckets_count);
     DLB_ASSERT(bucket < store->buckets_count);  // NOTE: Remove once we're sure reduce is working
     size_t index = store->buckets[bucket];
@@ -52,7 +55,11 @@ static inline size_t dlb_index_next(dlb_index *store, size_t index)
 static inline void dlb_index_insert(dlb_index *store, u32 hash, size_t index)
 {
     if (index >= store->chains_count) {
-        DLB_ASSERT(!"TODO: Resize chains to index + 1");
+        if (!store->buckets_count) {
+            dlb_index_init(store, 128, 128);
+        } else {
+            DLB_ASSERT(!"TODO: Resize chains to index + 1");
+        }
     }
     size_t bucket = dlb_reduce(hash, store->buckets_count);
     DLB_ASSERT(bucket < store->buckets_count);  // NOTE: Remove once we're sure reduce is working

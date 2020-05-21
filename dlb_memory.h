@@ -74,9 +74,14 @@ static inline void dlb_memmove(void *dst, const void *src, size_t size)
 
 static inline void dlb_memset(void *dst, char val, size_t size)
 {
-    for (size_t i = 0; i < size; i++) {
-        ((u8 *)dst)[i] = val;
-    }
+#if 1
+    // ~25% faster in debug, doesn't seem to matter in release
+    memset(dst, val, size);
+#else
+    //for (size_t i = 0; i < size; i++) {
+    //    ((u8 *)dst)[i] = val;
+    //}
+#endif
 }
 
 #endif
