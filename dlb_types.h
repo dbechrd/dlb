@@ -57,10 +57,11 @@ typedef r64     real64;
 #define MIN(a, b) ((a) < (b) ? (a) : (b))
 #define MAX(a, b) ((a) > (b) ? (a) : (b))
 #define ABS(x) (((x) > 0) ? (x) : -(x))
-#define ARRAY_COUNT(a) (sizeof(a) / sizeof(a[0]))
-#define SIZEOF_MEMBER(type, member) sizeof(((type *)0)->member)
-#define SIZEOF_MEMBER_ARRAY(type, member) sizeof(*(((type *)0)->member))
-#define OFFSETOF(s,m) ((size_t)&(((s*)0)->m))
+
+#define ARRAY_SIZE(x) (sizeof(x) / sizeof((x)[0]))                      // NOTE: Old name is ARRAY_COUNT
+#define FIELD_SIZEOF(type, field) (sizeof(((type *)0)->field))          // NOTE: Old name is SIZEOF_MEMBER
+#define FIELD_SIZEOF_ARRAY(type, field) (sizeof(*(((type *)0)->field))) // NOTE: Old name is SIZEOF_MEMBER_ARRAY
+#define OFFSETOF(type, field) ((size_t)&(((type *)0)->field))
 #define STRING(s) #s
 #define CSTR(s) (s), sizeof(s) - 1  // without terminator
 #define CSTR0(s) (s), sizeof(s)     // with nil terminator
