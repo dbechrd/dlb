@@ -209,7 +209,7 @@ void *dlb_hash_search(dlb_hash *table, const void *key, size_t klen, int *found)
 {
 #if _DEBUG
     if (table->debug) {
-        fprintf(table->debug, "[hash][search_start] searching for key %*.s\n", (int)klen, (char *)key);
+        fprintf(table->debug, "[hash][search_start] searching for key %.*s\n", (int)klen, (char *)key);
     }
 #endif
 
