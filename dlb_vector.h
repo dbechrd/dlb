@@ -9,16 +9,16 @@
 
 typedef struct dlb_vec__hdr {
     size_t len;        // current # of elements
-    size_t cap;        // capacity in # of elements (0 = fixed length)
+    size_t cap;        // capacity in # of elements
     size_t elem_size;  // size of each element
+    u8 fixed;
 } dlb_vec__hdr;
 
 #define dlb_vec_hdr(b) ((b) ? ((dlb_vec__hdr *)b - 1) : 0)
 #define dlb_vec_len(b) ((b) ? dlb_vec_hdr(b)->len : 0)
-#define dlb_vec_cap(b) ((b) ? ( \
-        dlb_vec_hdr(b)->cap ? dlb_vec_hdr(b)->cap : dlb_vec_len(b) \
-    ) : 0)
+#define dlb_vec_cap(b) ((b) ? dlb_vec_hdr(b)->cap : 0)
 #define dlb_vec_elem_size(b) ((b) ? dlb_vec_hdr(b)->elem_size : 0)
+#define dlb_vec_fixed(b) ((b) ? dlb_vec_hdr(b)->fixed : 0)
 
 #define dlb_vec_size(b) ((b) ? dlb_vec_len(b) * dlb_vec_elem_size(b) : 0)
 #define dlb_vec_end(b) ((b) + dlb_vec_len(b))
@@ -34,12 +34,7 @@ typedef struct dlb_vec__hdr {
 #define dlb_vec_reserve_size(b, n, s) \
     ((n) <= dlb_vec_cap(b) ? 0 : ((b) = dlb_vec__grow((b), (n), (s))))
 #define dlb_vec_reserve_fixed(b, n) \
-    (dlb_vec_reserve(b, n), dlb_vec_hdr(b)->cap = 0)
-#define dlb_vec_fixed(b) ((b) ? dlb_vec_hdr(b)->cap == 0 : 0)
-//#define dlb_vec_push(b, ...) \
-//    (dlb_vec_reserve((b), 1 + dlb_vec_len(b)), \
-//    ((b)[dlb_vec_hdr(b)->len++] = (__VA_ARGS__)), \
-//    dlb_vec_last(b))
+    (dlb_vec_reserve(b, n), dlb_vec_hdr(b)->fixed = 1)
 #define dlb_vec_push(b, v) \
     (dlb_vec_reserve((b), 1 + dlb_vec_len(b)), \
     ((b)[dlb_vec_hdr(b)->len++] = (v)), \
@@ -101,8 +96,13 @@ void *dlb_vec__grow(const void *buf, size_t len, size_t elem_size);
 #include "dlb_memory.h"
 #include <assert.h>
 
-void *dlb_vec__grow(const void *buf, size_t len, size_t elem_size) {
+void *dlb_vec__grow(void *buf, size_t len, size_t elem_size) {
     dlb_vec__hdr *hdr = dlb_vec_hdr(buf);
+    if (hdr && hdr->fixed) {
+        assert(!hdr->fixed);  // don't allow resize of fixed arrays
+        // TODO: Make this safer in release mode; this just returns the same buffer with no resize
+        return buf;
+    }
     size_t cap = dlb_vec_cap(buf);
     assert(cap <= (SIZE_MAX - 1) / 2);
     size_t new_cap = MAX(16, MAX(2 * cap, len));
@@ -111,7 +111,6 @@ void *dlb_vec__grow(const void *buf, size_t len, size_t elem_size) {
     size_t new_size = sizeof(dlb_vec__hdr) + new_cap * elem_size;
     if (hdr) {
         size_t old_size = sizeof(dlb_vec__hdr) + hdr->cap * elem_size;
-        assert(old_size);  // if 0, hdr->cap is 0 and it's a fixed array
         hdr = dlb_realloc(hdr, new_size);
         dlb_memset((char *)hdr + old_size, 0, new_size - old_size);
     } else {
