@@ -7,6 +7,7 @@
 //-- header --------------------------------------------------------------------
 #include <stdlib.h>
 #include <assert.h>
+#include <string.h>
 
 static inline void *dlb_malloc(size_t size)
 {
