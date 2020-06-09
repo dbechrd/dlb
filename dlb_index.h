@@ -56,7 +56,8 @@ static inline void dlb_index_insert(dlb_index *store, u32 hash, size_t index)
 {
     if (index >= store->chains_count) {
         if (!store->buckets_count) {
-            dlb_index_init(store, 128, 128);
+            DLB_ASSERT(!"index not initialized");
+            //dlb_index_init(store, 128, 128);
         } else {
             DLB_ASSERT(!"TODO: Resize chains to index + 1");
         }
