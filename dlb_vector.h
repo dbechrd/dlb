@@ -76,6 +76,8 @@ typedef struct dlb_vec__hdr {
     : 0)
 #define dlb_vec_free(b) ((b) ? (dlb_free(dlb_vec_hdr(b)), (b) = NULL) : 0)
 
+// NOTE: This will obviously resize the buffer, so it's not really const, but if I remove the const from the decl then
+// for some reason MSVC whines about all of the dlb_vec_push calls that operate on `const char **` vectors. *shrugs*
 void *dlb_vec__grow(const void *buf, size_t len, size_t elem_size);
 
 #endif
@@ -96,12 +98,12 @@ void *dlb_vec__grow(const void *buf, size_t len, size_t elem_size);
 #include "dlb_memory.h"
 #include <assert.h>
 
-void *dlb_vec__grow(void *buf, size_t len, size_t elem_size) {
+void *dlb_vec__grow(const void *buf, size_t len, size_t elem_size) {
     dlb_vec__hdr *hdr = dlb_vec_hdr(buf);
     if (hdr && hdr->fixed) {
         assert(!hdr->fixed);  // don't allow resize of fixed arrays
         // TODO: Make this safer in release mode; this just returns the same buffer with no resize
-        return buf;
+        return (void *)buf;
     }
     size_t cap = dlb_vec_cap(buf);
     assert(cap <= (SIZE_MAX - 1) / 2);
