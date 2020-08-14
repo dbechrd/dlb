@@ -11,7 +11,7 @@ typedef struct dlb_vec__hdr {
     size_t len;        // current # of elements
     size_t cap;        // capacity in # of elements
     size_t elem_size;  // size of each element
-    u8 fixed;          // 0 = dynamic allocation (min 16, 2x resize), 1 = fixed-size array (assert/no-op on resize)
+    size_t fixed;      // 0 = dynamic allocation (min 16, 2x resize), 1 = fixed-size array (assert/no-op on resize)
 } dlb_vec__hdr;
 
 #define dlb_vec_hdr(b) ((b) ? ((dlb_vec__hdr *)b - 1) : 0)
@@ -30,11 +30,11 @@ typedef struct dlb_vec__hdr {
 #define dlb_vec_index_size(b, i, s) (dlb_vec_len(b) ? (void *)((char *)(b) + (s) * (i)) : 0)
 #define dlb_vec_reserved_bytes(b) ((b) ? dlb_vec_cap(b) * sizeof(*(b)) : 0)
 #define dlb_vec_reserve(b, n) \
-    ((n) <= dlb_vec_cap(b) ? 0 : ((b) = dlb_vec__grow((b), (n), sizeof(*(b)))))
+    ((n) <= dlb_vec_cap(b) ? 0 : ((b) = dlb_vec__grow((b), (n), sizeof(*(b)), 0)))
 #define dlb_vec_reserve_size(b, n, s) \
-    ((n) <= dlb_vec_cap(b) ? 0 : ((b) = dlb_vec__grow((b), (n), (s))))
+    ((n) <= dlb_vec_cap(b) ? 0 : ((b) = dlb_vec__grow((b), (n), (s), 0)))
 #define dlb_vec_reserve_fixed(b, n) \
-    (dlb_vec_reserve(b, n), dlb_vec_hdr(b)->fixed = 1)
+    ((n) <= dlb_vec_cap(b) ? 0 : ((b) = dlb_vec__grow((b), (n), sizeof(*(b)), 1)))
 #define dlb_vec_push(b, v) \
     (dlb_vec_reserve((b), 1 + dlb_vec_len(b)), \
     ((b)[dlb_vec_hdr(b)->len++] = (v)), \
@@ -78,7 +78,7 @@ typedef struct dlb_vec__hdr {
 
 // NOTE: This will obviously resize the buffer, so it's not really const, but if I remove the const from the decl then
 // for some reason MSVC whines about all of the dlb_vec_push calls that operate on `const char **` vectors. *shrugs*
-void *dlb_vec__grow(const void *buf, size_t len, size_t elem_size);
+void *dlb_vec__grow(const void *buf, size_t len, size_t elem_size, size_t fixed);
 
 #endif
 //-- end of header -------------------------------------------------------------
@@ -98,7 +98,7 @@ void *dlb_vec__grow(const void *buf, size_t len, size_t elem_size);
 #include "dlb_memory.h"
 #include <assert.h>
 
-void *dlb_vec__grow(const void *buf, size_t len, size_t elem_size) {
+void *dlb_vec__grow(const void *buf, size_t len, size_t elem_size, size_t fixed) {
     dlb_vec__hdr *hdr = dlb_vec_hdr(buf);
     if (hdr && hdr->fixed) {
         assert(!hdr->fixed);  // don't allow resize of fixed arrays
@@ -107,8 +107,9 @@ void *dlb_vec__grow(const void *buf, size_t len, size_t elem_size) {
     }
     size_t cap = dlb_vec_cap(buf);
     assert(cap <= (SIZE_MAX - 1) / 2);
-    size_t new_cap = MAX(16, MAX(2 * cap, len));
+    size_t new_cap = MAX(!fixed * 16, MAX(2 * cap, len));
     assert(len <= new_cap);
+    assert(new_cap);
     assert(new_cap <= (SIZE_MAX - sizeof(dlb_vec__hdr))/elem_size);
     size_t new_size = sizeof(dlb_vec__hdr) + new_cap * elem_size;
     if (hdr) {
@@ -118,6 +119,7 @@ void *dlb_vec__grow(const void *buf, size_t len, size_t elem_size) {
     } else {
         hdr = dlb_calloc(1, new_size);
         hdr->len = 0;
+        hdr->fixed = fixed;
     }
     hdr->cap = new_cap;
     hdr->elem_size = elem_size;
