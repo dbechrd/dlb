@@ -31,6 +31,25 @@ typedef struct
     FILE *debug;
 } dlb_hash;
 
+#if DEBUG
+// NOTE: For easier casting in debugger, make strings readable. Could use union instead, but wutevs for now.
+typedef struct
+{
+    const char *key;
+    size_t klen;
+    void *value;
+} dlb_hash_entry_str;
+
+typedef struct
+{
+    dlb_hash_type type;
+    const char *name;
+    size_t size;
+    dlb_hash_entry_str *buckets;
+    FILE *debug;
+} dlb_hash_str;
+#endif
+
 void dlb_hash_init(dlb_hash *table, dlb_hash_type type, const char *name,
     size_t size_pow2);
 void dlb_hash_free(dlb_hash *table);
@@ -90,8 +109,8 @@ void dlb_hash_free(dlb_hash *table)
     dlb_free(table->buckets);
 }
 
-static dlb_hash_entry *_dlb_hash_find(dlb_hash *table, const void *key,
-    size_t klen, dlb_hash_entry **first_freed, u8 return_first)
+static dlb_hash_entry *_dlb_hash_find(dlb_hash *table, const void *key, size_t klen, dlb_hash_entry **first_freed,
+    u8 return_first)
 {
     u32 hash = 0;
     switch (table->type) {
@@ -108,7 +127,8 @@ static dlb_hash_entry *_dlb_hash_find(dlb_hash *table, const void *key,
 
 #if _DEBUG
     if (table->debug) {
-        fprintf(table->debug, "[hash][find] finding slot for %.*s, hash %u, starting at %u\n", (int)klen, (char *)key, hash, index);
+        fprintf(table->debug, "[hash][find] finding slot for %.*s, hash %u, starting at %u\n", (int)klen, (char *)key,
+            hash, index);
     }
 #endif
 
@@ -143,13 +163,15 @@ static dlb_hash_entry *_dlb_hash_find(dlb_hash *table, const void *key,
         int match = 0;
         if (entry->klen == klen) {
             switch (table->type) {
-                case DLB_HASH_STRING:
+                case DLB_HASH_STRING: {
                     match = !strncmp(entry->key, key, klen);
                     break;
-                case DLB_HASH_INT:
+                } case DLB_HASH_INT: {
                     match = entry->key == key;
                     break;
-                default: DLB_ASSERT(0);
+                } default: {
+                    DLB_ASSERT(0);
+                }
             }
         }
         if (match) {
