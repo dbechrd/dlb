@@ -56,6 +56,8 @@ typedef struct dlb_vec__hdr {
     dlb_vec_hdr(b)->len += n)
 
 // Pop & return pointer to last element, returns 0 if empty
+// TODO: Why would you return pointer to something that was just removed? It should return
+// a copy of the object, or force the caller to use dlb_vec_last() before calling this.
 #define dlb_vec_pop(b) \
     (dlb_vec_len(b) > 0 ? \
         dlb_vec_hdr(b)->len--, \
