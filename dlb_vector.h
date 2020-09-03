@@ -28,7 +28,7 @@ typedef struct dlb_vec__hdr {
 #define dlb_vec_last(b) (dlb_vec_len(b) ? &(b)[dlb_vec_len(b) - 1] : 0)
 #define dlb_vec_last_size(b, s) (dlb_vec_len(b) ? (void *)((char *)(b) + (s) * (dlb_vec_len(b) - 1)) : 0)
 #define dlb_vec_index_size(b, i, s) (dlb_vec_len(b) ? (void *)((char *)(b) + (s) * (i)) : 0)
-#define dlb_vec_reserved_bytes(b) ((b) ? dlb_vec_cap(b) * sizeof(*(b)) : 0)
+#define dlb_vec_reserved_bytes(b) ((b) ? dlb_vec_cap(b) * dlb_vec_elem_size(b) : 0)
 #define dlb_vec_reserve(b, n) \
     ((n) <= dlb_vec_cap(b) ? 0 : ((b) = dlb_vec__grow((b), (n), sizeof(*(b)), 0)))
 #define dlb_vec_reserve_size(b, n, s) \
