@@ -3,6 +3,50 @@
 
 #include "dlb_types.h"
 
+// str: nil-terminated string
+// returns: length of string, not including the nil terminator
+static inline u32 dlb_str_len(const char *str)
+{
+    u32 len = 0;
+    while (*str++) {
+        len++;
+    }
+    return len;
+}
+
+// str: nil-terminated string or NULL
+// prefix: nil-terminated string or NULL
+// returns: 1 if str starts with entire prefix, 0 otherwise
+static inline int dlb_str_startswith(const char *str, const char *prefix)
+{
+    if (!str || !prefix) {
+        return 0;
+    }
+
+    const char *str_ptr = str;
+    const char *prefix_ptr = prefix;
+    while (*str_ptr && *prefix_ptr && *str_ptr == *prefix_ptr) {
+        str_ptr++;
+        prefix_ptr++;
+    }
+    return *prefix_ptr == 0;
+}
+
+// str: nil-terminated string
+// c: character to replace
+// new_c: character to replace with
+static inline void dlb_str_replace_char(char *str, char c, char new_c)
+{
+    char *str_ptr = str;
+    while (*str_ptr) {
+        if (*str_ptr == c) {
+            *str_ptr = new_c;
+        }
+        str_ptr++;
+    }
+}
+
+#if 0
 #define STR(str) (const struct dlb_string) { str, sizeof(str) }
 #define STRL(str, len) (const struct dlb_string) { str, len }
 
@@ -12,24 +56,13 @@ struct dlb_string
     u32 len;
 };
 
-static inline u32 dlb_strlen(const char *str)
-{
-    u32 len = 0;
-    while (*str++)
-    {
-        len++;
-    }
-    return len;
-}
-
+// NOTE: Don't remember what these do.. not well tested. Test before using.
 static inline char *dlb_strsep_c(char **stringp, const char delim)
 {
     char *start = *stringp;
 
-    while (**stringp)
-    {
-        if (**stringp == delim)
-        {
+    while (**stringp) {
+        if (**stringp == delim) {
             **stringp = '\0';
             (*stringp)++;
             break;
@@ -45,13 +78,10 @@ static inline char *dlb_strsep(char **stringp, const char *delims)
     char *start = *stringp;
     const char *delim;
 
-    while (**stringp)
-    {
+    while (**stringp) {
         delim = delims;
-        while (delim)
-        {
-            if (**stringp == *delim)
-            {
+        while (delim) {
+            if (**stringp == *delim) {
                 **stringp = '\0';
                 (*stringp)++;
                 return start;
@@ -64,18 +94,20 @@ static inline char *dlb_strsep(char **stringp, const char *delims)
     return start;
 }
 
+// str: nil-terminated string containing only digits 0-9
+// returns: number contained in string as long
 static inline long dlb_atol(const char *str)
 {
     if (!str) return 0;
 
     long val = 0;
-    while(*str)
-    {
+    while(*str) {
         val = val*10 + (*str++ - '0');
     }
 
     return val;
 }
+#endif
 
 #if 0
 struct dlb_string
