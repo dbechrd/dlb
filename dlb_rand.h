@@ -38,6 +38,8 @@
 //-- dlb_rand.h ----------------------------------------------------------------
 void dlb_rand_seed(u32 value);
 u32 dlb_rand_u32();
+float dlb_rand_float(float min, float max);
+float dlb_rand_variance(float variance);
 #endif
 //-- end of header -------------------------------------------------------------
 
@@ -226,6 +228,19 @@ void dlb_rand_seed(u32 value)
 u32 dlb_rand_u32()
 {
     return mersenne_rand_u32();
+}
+
+// NOTE: min and max are both inclusive bounds
+float dlb_rand_float(float min, float max)
+{
+    float randf = (dlb_rand_u32() / (float)UINT32_MAX) * (max - min) + min;
+    return randf;
+}
+// Return random value between -variance and +variance, inclusive
+float dlb_rand_variance(float variance)
+{
+    float randf = dlb_rand_float(-variance, variance);
+    return randf;
 }
 
 #endif
