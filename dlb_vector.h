@@ -70,6 +70,12 @@ typedef struct dlb_vec__hdr {
         dlb_vec_hdr(b)->len--, \
         1) \
     : 0)
+#define dlb_vec_popz_size(b, s) \
+    (dlb_vec_len(b) > 0 ? \
+        (dlb_memset(dlb_vec_last_size((b), (s)), 0, (s)), \
+        dlb_vec_hdr(b)->len--, \
+        1) \
+    : 0)
 #define dlb_vec_clear(b) (dlb_vec_len(b) > 0 ? dlb_vec_hdr(b)->len = 0 : 0)
 #define dlb_vec_zero(b) \
     (dlb_vec_cap(b) > 0 ? \
