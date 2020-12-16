@@ -48,8 +48,8 @@ static inline void dlb_free(void *block)
 
 static inline void dlb_memcpy(void *dst, const void *src, size_t size)
 {
-    const u8 *s = src;
-    u8 *d = dst;
+    const u8 *s = (u8 *)src;
+    u8 *d = (u8 *)dst;
     assert(!(d > s && d < s + size));  // Overwriting src! Use dlb_memmove.
     for (size_t i = 0; i < size; ++i) {
         d[i] = s[i];
@@ -58,8 +58,8 @@ static inline void dlb_memcpy(void *dst, const void *src, size_t size)
 
 static inline void dlb_memmove(void *dst, const void *src, size_t size)
 {
-    const u8 *s = src;
-    u8 *d = dst;
+    const u8 *s = (u8 *)src;
+    u8 *d = (u8 *)dst;
     if (d > s && d < s + size) {
         // Iterate backwards when dst overwrites src bytes we haven't copied yet
         for (size_t i = size - 1; i > 0; --i) {

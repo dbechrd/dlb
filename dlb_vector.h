@@ -122,10 +122,10 @@ void *dlb_vec__grow(const void *buf, size_t len, size_t elem_size, size_t fixed)
     size_t new_size = sizeof(dlb_vec__hdr) + new_cap * elem_size;
     if (hdr) {
         size_t old_size = sizeof(dlb_vec__hdr) + hdr->cap * elem_size;
-        hdr = dlb_realloc(hdr, new_size);
+        hdr = (dlb_vec__hdr *)dlb_realloc(hdr, new_size);
         dlb_memset((char *)hdr + old_size, 0, new_size - old_size);
     } else {
-        hdr = dlb_calloc(1, new_size);
+        hdr = (dlb_vec__hdr *)dlb_calloc(1, new_size);
         hdr->len = 0;
         hdr->fixed = fixed;
     }

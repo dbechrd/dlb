@@ -76,12 +76,12 @@ typedef struct dlb_index {
 static inline void dlb_index_init(dlb_index *store, size_t buckets, size_t chains)
 {
     store->buckets_count = buckets;
-    store->buckets = dlb_malloc(store->buckets_count * sizeof(*store->buckets));
+    store->buckets = (size_t *)dlb_malloc(store->buckets_count * sizeof(*store->buckets));
     for (size_t i = 0; i < store->buckets_count; ++i) {
         store->buckets[i] = DLB_INDEX_EMPTY;
     }
     store->chains_count = chains;
-    store->chains = dlb_malloc(store->chains_count * sizeof(*store->chains));
+    store->chains = (size_t *)dlb_malloc(store->chains_count * sizeof(*store->chains));
     for (size_t i = 0; i < store->chains_count; ++i) {
         store->chains[i] = DLB_INDEX_EMPTY;
     }
