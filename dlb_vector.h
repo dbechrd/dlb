@@ -14,7 +14,8 @@ typedef struct dlb_vec__hdr {
     size_t fixed;      // 0 = dynamic allocation (min 16, 2x resize), 1 = fixed-size array (assert/no-op on resize)
 } dlb_vec__hdr;
 
-#define dlb_vec_hdr(b) ((b) ? ((dlb_vec__hdr *)b - 1) : 0)
+#define dlb_vec_hdr(b) ((b) ? ((dlb_vec__hdr *)((u8 *)(b) - sizeof(dlb_vec__hdr))) : 0)
+//#define dlb_vec_hdr(b) ((b) ? (((dlb_vec__hdr *)(b)) - 1) : 0)
 #define dlb_vec_len(b) ((b) ? dlb_vec_hdr(b)->len : 0)
 #define dlb_vec_cap(b) ((b) ? dlb_vec_hdr(b)->cap : 0)
 #define dlb_vec_elem_size(b) ((b) ? dlb_vec_hdr(b)->elem_size : 0)
