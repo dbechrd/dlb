@@ -21,6 +21,7 @@ typedef struct dlb_vec__hdr {
 #define dlb_vec_elem_size(b) ((b) ? dlb_vec_hdr(b)->elem_size : 0)
 #define dlb_vec_fixed(b) ((b) ? dlb_vec_hdr(b)->fixed : 0)
 
+#define dlb_vec_empty(b) (dlb_vec_len(b) == 0)
 #define dlb_vec_size(b) ((b) ? dlb_vec_len(b) * dlb_vec_elem_size(b) : 0)
 #define dlb_vec_end(b) ((b) + dlb_vec_len(b))
 #define dlb_vec_end_size(b, s) (void *)((char *)(b) + dlb_vec_len(b) * s)
