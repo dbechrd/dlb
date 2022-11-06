@@ -1,45 +1,65 @@
 #ifndef DLB_RAND_H
 #define DLB_RAND_H
 //------------------------------------------------------------------------------
-// Copyright 2018 Dan Bechard
+// Copyright 2021 Dan Bechard
+//
+// Contains 3rd party code, see additional copyright notices below.
 //------------------------------------------------------------------------------
 
 //-- header --------------------------------------------------------------------
-#include "dlb_types.h"
-
-//-- mersenne-twister.h -------------------------------------------------------------
-/*
- * The Mersenne Twister pseudo-random number generator (PRNG)
- *
- * This is an implementation of fast PRNG called MT19937, meaning it has a
- * period of 2^19937-1, which is a Mersenne prime.
- *
- * This PRNG is fast and suitable for non-cryptographic code.  For instance, it
- * would be perfect for Monte Carlo simulations, etc.
- *
- * For all the details on this algorithm, see the original paper:
- * http://www.math.sci.hiroshima-u.ac.jp/~m-mat/MT/ARTICLES/mt.pdf
- *
- * Written by Christian Stigen Larsen
- * Distributed under the modified BSD license.
- * 2015-02-17, 2017-12-06
- */
-
-/*
-* Extract a pseudo-random unsigned 32-bit integer in the range 0 ... UINT32_MAX
-*/
-//u32 mersenne_rand_u32();
-
-/*
-* Initialize Mersenne Twister with given seed value.
-*/
-//void mersenne_seed(u32 seed_value);
 
 //-- dlb_rand.h ----------------------------------------------------------------
-void dlb_rand_seed(u32 value);
-u32 dlb_rand_u32();
-float dlb_rand_float(float min, float max);
-float dlb_rand_variance(float variance);
+#include <cinttypes>
+
+struct pcg_state_setseq_64 {    // Internals are *Private*.
+    uint64_t state;             // RNG state.  All values are possible.
+    uint64_t inc;               // Controls which RNG sequence (stream) is
+                                // selected. Must *always* be odd.
+};
+typedef struct pcg_state_setseq_64 dlb_rand32_t;
+
+// Seed global RNG state (simple API, uses seed as sequence)
+void dlb_rand32_seed(uint64_t seed);
+// Seed global RNG state. Sequence should be unique for each RNG.
+void dlb_rand32_seed_s(uint64_t seed, uint64_t sequence);
+// Seed RNG state. Sequence should be unique for each RNG.
+void dlb_rand32_seed_r(dlb_rand32_t *rng, uint64_t seed, uint64_t sequence);
+
+// Return random uint in range [0, UINT_MAX]
+uint32_t dlb_rand32u_r(dlb_rand32_t *rng);
+// Return random uint in range [0, UINT_MAX]
+uint32_t dlb_rand32u(void);
+
+// Return random uint in range [min, max], inclusive max
+uint32_t dlb_rand32u_range_r(dlb_rand32_t *rng, uint32_t min, uint32_t max);
+// Return random uint in range [min, max], inclusive max
+uint32_t dlb_rand32u_range(uint32_t min, uint32_t max);
+
+// Return random int in range [INT_MIN, INT_MAX], inclusive max
+int32_t dlb_rand32i_r(dlb_rand32_t *rng);
+// Return random int in range [INT_MIN, INT_MAX], inclusive max
+int32_t dlb_rand32i(void);
+
+// Return random int in range [min, max], inclusive max
+int32_t dlb_rand32i_range_r(dlb_rand32_t *rng, int32_t min, int32_t max);
+// Return random int in range [min, max], inclusive max
+int32_t dlb_rand32i_range(int32_t min, int32_t max);
+
+// Return random float in range [0, 1), exclusive max
+float dlb_rand32f_r(dlb_rand32_t *rng);
+// Return random float in range [0, 1), exclusive max
+float dlb_rand32f(void);
+
+// Return random float in range [min, max), exclusive max
+float dlb_rand32f_range_r(dlb_rand32_t *rng, float min, float max);
+// Return random float in range [min, max), exclusive max
+float dlb_rand32f_range(float min, float max);
+
+// Return random float in range [-variance, +variance), exclusive +variance
+float dlb_rand32f_variance_r(dlb_rand32_t *rng, float variance);
+// Return random float in range [-variance, +variance), exclusive +variance
+float dlb_rand32f_variance(float variance);
+
 #endif
 //-- end of header -------------------------------------------------------------
 
@@ -53,193 +73,317 @@ float dlb_rand_variance(float variance);
 #ifndef DLB_RAND_IMPL_INTERNAL
 #define DLB_RAND_IMPL_INTERNAL
 
-//-- mersenne-twister.c --------------------------------------------------------
+//-- pcg_basic.h ---------------------------------------------------------------
 /*
- * The Mersenne Twister pseudo-random number generator (PRNG)
- *
- * This is an implementation of fast PRNG called MT19937, meaning it has a
- * period of 2^19937-1, which is a Mersenne prime.
- *
- * This PRNG is fast and suitable for non-cryptographic code.  For instance, it
- * would be perfect for Monte Carlo simulations, etc.
- *
- * For all the details on this algorithm, see the original paper:
- * http://www.math.sci.hiroshima-u.ac.jp/~m-mat/MT/ARTICLES/mt.pdf
- *
- * Written by Christian Stigen Larsen
- * Distributed under the modified BSD license.
- * 2015-02-17, 2017-12-06
- */
+* PCG Random Number Generation for C.
+*
+* Copyright 2014 Melissa O'Neill <oneill@pcg-random.org>
+*
+* Licensed under the Apache License, Version 2.0 (the "License");
+* you may not use this file except in compliance with the License.
+* You may obtain a copy of the License at
+*
+*     http://www.apache.org/licenses/LICENSE-2.0
+*
+* Unless required by applicable law or agreed to in writing, software
+* distributed under the License is distributed on an "AS IS" BASIS,
+* WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+* See the License for the specific language governing permissions and
+* limitations under the License.
+*
+* For additional information about the PCG random number generation scheme,
+* including its license and other licensing options, visit
+*
+*     http://www.pcg-random.org
+*/
 
- // Better on older Intel Core i7, but worse on newer Intel Xeon CPUs (undefine
- // it on those).
- //#define MT_UNROLL_MORE
+/*
+* This code is derived from the full C implementation, which is in turn
+* derived from the canonical C++ PCG implementation. The C++ version
+* has many additional features and is preferable if you can use C++ in
+* your project.
+*/
 
- /*
-  * We have an array of 624 32-bit values, and there are 31 unused bits, so we
-  * have a seed value of 624*32-31 = 19937 bits.
-  */
-#define MERSENNE_SIZE 624
-#define MERSENNE_PERIOD 397
-#define MERSENNE_DIFF (MERSENNE_SIZE - MERSENNE_PERIOD)
+// pcg32_srandom(initstate, initseq)
+// pcg32_srandom_r(rng, initstate, initseq):
+//     Seed the rng.  Specified in two parts, state initializer and a
+//     sequence selection constant (a.k.a. stream id)
+void pcg32_srandom(uint64_t initstate, uint64_t initseq);
+void pcg32_srandom_r(dlb_rand32_t *rng, uint64_t initstate, uint64_t initseq);
 
-static const u32 MERSENNE_MAGIC = 0x9908b0df;
+// pcg32_random()
+// pcg32_random_r(rng)
+//     Generate a uniformly distributed 32-bit random number
+uint32_t pcg32_random(void);
+uint32_t pcg32_random_r(dlb_rand32_t *rng);
 
-// State for a singleton Mersenne Twister. If you want to make this into a
-// class, these are what you need to isolate.
-typedef struct {
-    u32 MT[MERSENNE_SIZE];
-    u32 MT_TEMPERED[MERSENNE_SIZE];
-    size_t index;
-} MTState;
+// pcg32_boundedrand(bound):
+// pcg32_boundedrand_r(rng, bound):
+//     Generate a uniformly distributed number, r, where 0 <= r < bound
+uint32_t pcg32_boundedrand(uint32_t bound);
+uint32_t pcg32_boundedrand_r(dlb_rand32_t *rng, uint32_t bound);
 
-static MTState mt_state;
+//-- pcg_basic.c --------------------------------------------------------
+/*
+* PCG Random Number Generation for C.
+*
+* Copyright 2014 Melissa O'Neill <oneill@pcg-random.org>
+*
+* Licensed under the Apache License, Version 2.0 (the "License");
+* you may not use this file except in compliance with the License.
+* You may obtain a copy of the License at
+*
+*     http://www.apache.org/licenses/LICENSE-2.0
+*
+* Unless required by applicable law or agreed to in writing, software
+* distributed under the License is distributed on an "AS IS" BASIS,
+* WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+* See the License for the specific language governing permissions and
+* limitations under the License.
+*
+* For additional information about the PCG random number generation scheme,
+* including its license and other licensing options, visit
+*
+*       http://www.pcg-random.org
+*/
 
-#define M32(x) (0x80000000 & x) // 32nd MSB
-#define L31(x) (0x7FFFFFFF & x) // 31 LSBs
+/*
+* This code is derived from the full C implementation, which is in turn
+* derived from the canonical C++ PCG implementation. The C++ version
+* has many additional features and is preferable if you can use C++ in
+* your project.
+*/
 
-#define UNROLL(expr) \
-  y = M32(mt_state.MT[i]) | L31(mt_state.MT[i+1]); \
-  mt_state.MT[i] = mt_state.MT[expr] ^ (y >> 1) ^ ((((s32)(y) << 31) >> 31) & MERSENNE_MAGIC); \
-  ++i;
+typedef dlb_rand32_t pcg32_random_t;
 
-static void mersenne_generate_numbers()
+// If you *must* statically initialize it, here's one.
+#define PCG32_INITIALIZER { 0x853c49e6748fea9bULL, 0xda3e39cb94b95bdbULL }
+
+// state for global RNGs
+static dlb_rand32_t pcg32_global = PCG32_INITIALIZER;
+
+// pcg32_srandom(initstate, initseq)
+// pcg32_srandom_r(rng, initstate, initseq):
+//     Seed the rng.  Specified in two parts, state initializer and a
+//     sequence selection constant (a.k.a. stream id)
+void pcg32_srandom_r(pcg32_random_t* rng, uint64_t initstate, uint64_t initseq)
 {
-    /*
-     * For performance reasons, we've unrolled the loop three times, thus
-     * mitigating the need for any modulus operations. Anyway, it seems this
-     * trick is old hat: http://www.quadibloc.com/crypto/co4814.htm
-     */
-
-    size_t i = 0;
-    u32 y;
-
-    // i = [0 ... 226]
-    while (i < MERSENNE_DIFF) {
-        /*
-         * We're doing 226 = 113*2, an even number of steps, so we can safely
-         * unroll one more step here for speed:
-         */
-        UNROLL(i + MERSENNE_PERIOD);
-
-#ifdef MT_UNROLL_MORE
-        UNROLL(i + MERSENNE_PERIOD);
-#endif
-    }
-
-    // i = [227 ... 622]
-    while (i < MERSENNE_SIZE - 1) {
-        /*
-         * 623-227 = 396 = 2*2*3*3*11, so we can unroll this loop in any number
-         * that evenly divides 396 (2, 4, 6, etc). Here we'll unroll 11 times.
-         */
-        UNROLL(i - MERSENNE_DIFF);
-
-#ifdef MT_UNROLL_MORE
-        UNROLL(i - MERSENNE_DIFF);
-        UNROLL(i - MERSENNE_DIFF);
-        UNROLL(i - MERSENNE_DIFF);
-        UNROLL(i - MERSENNE_DIFF);
-        UNROLL(i - MERSENNE_DIFF);
-        UNROLL(i - MERSENNE_DIFF);
-        UNROLL(i - MERSENNE_DIFF);
-        UNROLL(i - MERSENNE_DIFF);
-        UNROLL(i - MERSENNE_DIFF);
-        UNROLL(i - MERSENNE_DIFF);
-#endif
-    }
-
-    {
-        // i = 623, last step rolls over
-        y = M32(mt_state.MT[MERSENNE_SIZE - 1]) | L31(mt_state.MT[0]);
-        mt_state.MT[MERSENNE_SIZE - 1] = mt_state.MT[MERSENNE_PERIOD - 1] ^ (y >> 1) ^ ((((s32)(y) << 31) >>
-            31) & MERSENNE_MAGIC);
-    }
-
-    // Temper all numbers in a batch
-    for (size_t i2 = 0; i2 < MERSENNE_SIZE; ++i2) {
-        y = mt_state.MT[i2];
-        y ^= y >> 11;
-        y ^= y << 7 & 0x9d2c5680;
-        y ^= y << 15 & 0xefc60000;
-        y ^= y >> 18;
-        mt_state.MT_TEMPERED[i2] = y;
-    }
-
-    mt_state.index = 0;
+    rng->state = 0U;
+    rng->inc = (initseq << 1u) | 1u;
+    pcg32_random_r(rng);
+    rng->state += initstate;
+    pcg32_random_r(rng);
 }
 
-static void mersenne_seed(u32 value)
+void pcg32_srandom(uint64_t seed, uint64_t seq)
 {
-    /*
-     * The equation below is a linear congruential generator (LCG), one of the
-     * oldest known pseudo-random number generator algorithms, in the form
-     * X_(n+1) = = (a*X_n + c) (mod m).
-     *
-     * We've implicitly got m=32 (mask + word size of 32 bits), so there is no
-     * need to explicitly use modulus.
-     *
-     * What is interesting is the multiplier a.  The one we have below is
-     * 0x6c07865 --- 1812433253 in decimal, and is called the Borosh-Niederreiter
-     * multiplier for modulus 2^32.
-     *
-     * It is mentioned in passing in Knuth's THE ART OF COMPUTER
-     * PROGRAMMING, Volume 2, page 106, Table 1, line 13.  LCGs are
-     * treated in the same book, pp. 10-26
-     *
-     * You can read the original paper by Borosh and Niederreiter as well.  It's
-     * called OPTIMAL MULTIPLIERS FOR PSEUDO-RANDOM NUMBER GENERATION BY THE
-     * LINEAR CONGRUENTIAL METHOD (1983) at
-     * http://www.springerlink.com/content/n7765ku70w8857l7/
-     *
-     * You can read about LCGs at:
-     * http://en.wikipedia.org/wiki/Linear_congruential_generator
-     *
-     * From that page, it says: "A common Mersenne twister implementation,
-     * interestingly enough, uses an LCG to generate seed data.",
-     *
-     * Since we're using 32-bits data types for our MT array, we can skip the
-     * masking with 0xFFFFFFFF below.
-     */
-
-    mt_state.MT[0] = value;
-    mt_state.index = MERSENNE_SIZE;
-
-    for (u32 i = 1; i < MERSENNE_SIZE; ++i)
-        mt_state.MT[i] = 0x6c078965 * (mt_state.MT[i - 1] ^ mt_state.MT[i - 1] >> 30) + i;
+    pcg32_srandom_r(&pcg32_global, seed, seq);
 }
 
-static u32 mersenne_rand_u32()
+#pragma warning(push)
+#pragma warning(disable: 4146)  // "unary minus operator applied to unsigned type"
+#pragma warning(disable: 4244)  // "conversion from uint64_t to uint32_t"
+// pcg32_random()
+// pcg32_random_r(rng)
+//     Generate a uniformly distributed 32-bit random number
+uint32_t pcg32_random_r(pcg32_random_t* rng)
 {
-    if (mt_state.index == MERSENNE_SIZE) {
-        mersenne_generate_numbers();
-        mt_state.index = 0;
-    }
+    uint64_t oldstate = rng->state;
+    rng->state = oldstate * 6364136223846793005ULL + rng->inc;
+    uint32_t xorshifted = ((oldstate >> 18u) ^ oldstate) >> 27u;
+    uint32_t rot = oldstate >> 59u;
+    return (xorshifted >> rot) | (xorshifted << ((-rot) & 31));
+}
+#pragma warning(pop)
 
-    return mt_state.MT_TEMPERED[mt_state.index++];
+uint32_t pcg32_random(void)
+{
+    return pcg32_random_r(&pcg32_global);
+}
+
+#pragma warning(push)
+#pragma warning(disable: 4146)  // "unary minus operator applied to unsigned type"
+// pcg32_boundedrand(bound):
+// pcg32_boundedrand_r(rng, bound):
+//     Generate a uniformly distributed number, r, where 0 <= r < bound
+uint32_t pcg32_boundedrand_r(pcg32_random_t* rng, uint32_t bound)
+{
+    // To avoid bias, we need to make the range of the RNG a multiple of
+    // bound, which we do by dropping output less than a threshold.
+    // A naive scheme to calculate the threshold would be to do
+    //
+    //     uint32_t threshold = 0x100000000ull % bound;
+    //
+    // but 64-bit div/mod is slower than 32-bit div/mod (especially on
+    // 32-bit platforms).  In essence, we do
+    //
+    //     uint32_t threshold = (0x100000000ull-bound) % bound;
+    //
+    // because this version will calculate the same modulus, but the LHS
+    // value is less than 2^32.
+
+    uint32_t threshold = -bound % bound;
+
+    // Uniformity guarantees that this loop will terminate.  In practice, it
+    // should usually terminate quickly; on average (assuming all bounds are
+    // equally likely), 82.25% of the time, we can expect it to require just
+    // one iteration.  In the worst case, someone passes a bound of 2^31 + 1
+    // (i.e., 2147483649), which invalidates almost 50% of the range.  In
+    // practice, bounds are typically small and only a tiny amount of the range
+    // is eliminated.
+    for (;;) {
+        uint32_t r = pcg32_random_r(rng);
+        if (r >= threshold)
+            return r % bound;
+    }
+}
+#pragma warning(pop)
+
+uint32_t pcg32_boundedrand(uint32_t bound)
+{
+    return pcg32_boundedrand_r(&pcg32_global, bound);
 }
 
 //-- dlb_rand.c ----------------------------------------------------------------
-void dlb_rand_seed(u32 value)
+
+#include <climits>
+#include <cmath>
+
+// Seed RNG state. Sequence should be unique for each RNG.
+void dlb_rand32_seed_r(dlb_rand32_t *rng, uint64_t seed, uint64_t sequence)
 {
-    mersenne_seed(value);
+    pcg32_srandom_r(rng, seed, sequence);
 }
 
-u32 dlb_rand_u32()
+// Seed global RNG state (simple API, uses seed as sequence)
+void dlb_rand32_seed(uint64_t seed)
 {
-    return mersenne_rand_u32();
+    // NOTE: It should be fine to just use seed as the sequence as well for
+    // API simplicity even though it eliminates a bunch of entropy. User
+    // can call dlb_rand32_seed_seq if they want to get the entropy back.
+    dlb_rand32_seed_r(&pcg32_global, seed, seed);
 }
 
-// NOTE: min and max are both inclusive bounds
-float dlb_rand_float(float min, float max)
+// Seed global RNG state. Sequence should be unique for each RNG.
+void dlb_rand32_seed_s(uint64_t seed, uint64_t sequence)
 {
-    float randf = (dlb_rand_u32() / (float)UINT32_MAX) * (max - min) + min;
+    dlb_rand32_seed_r(&pcg32_global, seed, sequence);
+}
+
+// Return random uint in range [0, UINT_MAX]
+uint32_t dlb_rand32u_r(dlb_rand32_t *rng)
+{
+    const uint32_t randu = pcg32_random_r(rng);
+    return randu;
+}
+
+// Return random uint in range [0, UINT_MAX]
+uint32_t dlb_rand32u(void)
+{
+    const uint32_t randu = dlb_rand32u_r(&pcg32_global);
+    return randu;
+}
+
+// Return random uint in range [min, max], inclusive max
+uint32_t dlb_rand32u_range_r(dlb_rand32_t *rng, uint32_t min, uint32_t max)
+{
+    // Map signed ints to unsigned range before subtracting (max - min) to prevent overflow
+    const uint32_t range = max - min;
+    const uint32_t randu = pcg32_boundedrand_r(rng, range + 1) + min;
+    return randu;
+}
+
+// Return random int in range [min, max], inclusive max
+uint32_t dlb_rand32u_range(uint32_t min, uint32_t max)
+{
+    const uint32_t randu = dlb_rand32u_range_r(&pcg32_global, min, max);
+    return randu;
+}
+
+// Return random int in range [INT_MIN, INT_MAX], inclusive max
+int32_t dlb_rand32i_r(dlb_rand32_t *rng)
+{
+    const int32_t randi = (int32_t)pcg32_random_r(rng);
+    return randi;
+}
+
+// Return random int in range [INT_MIN, INT_MAX], inclusive max
+int32_t dlb_rand32i(void)
+{
+    const int32_t randi = dlb_rand32i_r(&pcg32_global);
+    return randi;
+}
+
+// Return random int in range [min, max], inclusive max
+int32_t dlb_rand32i_range_r(dlb_rand32_t *rng, int32_t min, int32_t max)
+{
+    // Map signed ints to unsigned range before subtracting (max - min) to prevent overflow
+    const uint32_t u_zero = 1U + INT_MAX;
+    const uint32_t range = (max + u_zero) - (min + u_zero);
+    const int32_t randi = (int32_t)pcg32_boundedrand_r(rng, range + 1) + min;
+    return randi;
+}
+
+// Return random int in range [min, max], inclusive max
+int32_t dlb_rand32i_range(int32_t min, int32_t max)
+{
+    const int32_t randi = dlb_rand32i_range_r(&pcg32_global, min, max);
+    return randi;
+}
+
+// Return random int in range [-variance, +variance), exclusive +variance
+int dlb_rand32i_variance_r(dlb_rand32_t *rng, int variance)
+{
+    const int randi = dlb_rand32i_range_r(rng, -variance, variance);
+    return randi;
+}
+
+// Return random int in range [-variance, +variance), exclusive +variance
+int dlb_rand32i_variance(int variance)
+{
+    const int randi = dlb_rand32i_variance_r(&pcg32_global, variance);
+    return randi;
+}
+
+// Return random float in range [0, 1), exclusive max
+float dlb_rand32f_r(dlb_rand32_t *rng)
+{
+    const float randf = ldexpf((float)pcg32_random_r(rng), -32);
     return randf;
 }
-// Return random value between -variance and +variance, inclusive
-float dlb_rand_variance(float variance)
+
+// Return random float in range [0, 1), exclusive max
+float dlb_rand32f(void)
 {
-    float randf = dlb_rand_float(-variance, variance);
+    const float randf = dlb_rand32f_r(&pcg32_global);
+    return randf;
+}
+
+// Return random float in range [min, max), exclusive max
+float dlb_rand32f_range_r(dlb_rand32_t *rng, float min, float max)
+{
+    const float randf = ldexpf((float)pcg32_random_r(rng), -32) * (max - min) + min;
+    return randf;
+}
+
+// Return random float in range [min, max), exclusive max
+float dlb_rand32f_range(float min, float max)
+{
+    const float randf = dlb_rand32f_range_r(&pcg32_global, min, max);
+    return randf;
+}
+
+// Return random float in range [-variance, +variance), exclusive +variance
+float dlb_rand32f_variance_r(dlb_rand32_t *rng, float variance)
+{
+    const float randf = dlb_rand32f_range_r(rng, -variance, variance);
+    return randf;
+}
+
+// Return random float in range [-variance, +variance), exclusive +variance
+float dlb_rand32f_variance(float variance)
+{
+    const float randf = dlb_rand32f_variance_r(&pcg32_global, variance);
     return randf;
 }
 
@@ -250,8 +394,43 @@ float dlb_rand_variance(float variance)
 //-- tests ---------------------------------------------------------------------
 #ifdef DLB_RAND_TEST
 
-static void dlb_rand_test() {
-    // TODO: Write some tests
+#include <cstdio>
+#include <cassert>
+#include <cinttypes>
+#include <ctime>
+#include <cfloat>
+
+void dlb_rand_test(void)
+{
+    dlb_rand32_seed(time(0));
+
+    int counts[4] = { 0 };
+    for (int i = 0; i < 10000; i++) {
+        int32_t one_thru_four = dlb_rand32i_range(1, 4);
+        assert(one_thru_four >= 1);
+        assert(one_thru_four <= 4);
+        counts[one_thru_four - 1]++;
+    }
+#if 0
+    printf("\ndlb_rand32i(1, 4) 10000 iterations:\n");
+    for (int i = 0; i < 4; i++) {
+        printf("[%2d] %2d\n", i + 1, counts[i]);
+    }
+#endif
+    //memset(counts, 0, sizeof(counts));
+
+#if 0
+    printf("\ndlb_rand32f(1.0f, 4.0f) 10000 iterations\n");
+    float min = FLT_MAX;
+    float max = FLT_MIN;
+    for (int i = 0; i < 10000; i++) {
+        const float randf = dlb_rand32f_range(1.0f, 4.0f);
+        if (randf < min) min = randf;
+        if (randf > max) max = randf;
+    }
+    printf("min: %2f\n", min);
+    printf("max: %2f\n", max);
+#endif
 }
 
 #endif

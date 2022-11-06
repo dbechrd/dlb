@@ -4,12 +4,12 @@
 //------------------------------------------------------------------------------
 // Basic type redefinitions
 //------------------------------------------------------------------------------
-#include <stdint.h>
-#include <assert.h>
+#include <cstdint>
+#include <climits>
 //#include <stdbool.h>
-//#include <stddef.h>
-//#include <limits.h>
+//#include <assert.h>
 //#include <float.h>
+//#include <stddef.h>
 
 typedef int8_t      s8;
 typedef int16_t     s16;
@@ -35,10 +35,6 @@ typedef r32     real32;
 typedef r64     real64;
 //typedef u32     bool32;
 
-#define bool s32
-#define true 1
-#define false 0
-
 // NOTE: internal and global are relative to translation unit
 #if 0
 #define local    static
@@ -47,10 +43,29 @@ typedef r64     real64;
 #endif
 
 // Enums generators
-#define ENUM(e, ...) e,
-#define ENUM_INT(e, val) e = val,
-#define ENUM_STRING(e, ...) #e,
-#define ENUM_META(e, str) str,
+//
+//   #define MENU_ITEMS(f) \
+//       f(Main,  "Main Menu") \
+//       f(Audio, "Audio")
+//   DLB_ENUM_DECL(Menu, MENU_ITEMS);
+//   DLB_ENUM_DEFS(Menu, MENU_ITEMS);
+//   STRING(Menu::Main);
+//
+#define DLB_ENUM(e, ...) e,
+#define DLB_ENUM_INT(e, val) e = val,
+#define DLB_ENUM_STRINGIFY(e, ...) #e,
+#define DLB_ENUM_DESCIFY(e, desc) desc,
+#define DLB_ENUM_DECL(t, items_macro) \
+    enum t { \
+        items_macro(DLB_ENUM) \
+    }; \
+    extern const char *t##Str[]; \
+    extern const char *t##Desc[];
+#define DLB_ENUM_DEFS(t, items_macro) \
+    const char *t##Str[] = { items_macro(DLB_ENUM_STRINGIFY) }; \
+    const char *t##Desc[] = { items_macro(DLB_ENUM_DESCIFY) };
+#define DLB_ENUM_STR(t, e) t##Str[(int)t::e]
+#define DLB_ENUM_DESC(t, e) t##Desc[(int)t::e]
 
 // Useful macros
 #define UNUSED(x) ((void)(x))
@@ -123,17 +138,16 @@ static inline void swap_int(int *a, int *b)
 #define DLB_ASSERT_HANDLER(name) \
     void name(const char *expr, const char *filename, u32 line)
 typedef DLB_ASSERT_HANDLER(dlb_assert_handler_def);
-//extern dlb_assert_handler_def *dlb_assert_handler;
 extern dlb_assert_handler_def *dlb_assert_handler;
 
 #define DLB_ASSERT(expr) \
-    if (expr) { } \
-    else { \
-        if (dlb_assert_handler) { \
-            (*dlb_assert_handler)(#expr, __FILE__, __LINE__); \
-            assert(0); \
-        } else { \
-            assert(0); \
+    do { \
+        if (!(expr)) { \
+            if (dlb_assert_handler) { \
+                (*dlb_assert_handler)(#expr, __FILE__, __LINE__); \
+            } \
+            __debugbreak(); \
+            exit(-1); \
         } \
-    }
+    } while(0)
 //------------------------------------------------------------------------------

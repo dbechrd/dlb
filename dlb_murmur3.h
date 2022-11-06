@@ -5,15 +5,6 @@
 //------------------------------------------------------------------------------
 
 //-- header --------------------------------------------------------------------
-// Reduce an evenly distributed value in (0, 2^32) to (0, N). Replaces modulus.
-// https://lemire.me/blog/2016/06/27/a-fast-alternative-to-the-modulo-reduction/
-//static inline uint32_t dlb_reduce(uint32_t x, uint32_t N) {
-//    return ((uint64_t)x * (uint64_t)N) >> 32;
-//}
-// NOTE: Above optimization doesn't seem possible with size_t in 64-bit mode.
-static inline size_t dlb_reduce(u32 x, size_t N) {
-    return x % N;
-}
 
 //-- Murmurhash3.h -------------------------------------------------------------
 // MurmurHash3 was written by Austin Appleby, and is placed in the public
@@ -29,6 +20,16 @@ typedef unsigned __int64 uint64_t;
 // Other compilers
 #include <stdint.h>
 #endif
+
+// Reduce an evenly distributed value in (0, 2^32) to (0, N). Replaces modulus.
+// https://lemire.me/blog/2016/06/27/a-fast-alternative-to-the-modulo-reduction/
+//static inline uint32_t dlb_reduce(uint32_t x, uint32_t N) {
+//    return ((uint64_t)x * (uint64_t)N) >> 32;
+//}
+// NOTE: Above optimization doesn't seem possible with size_t in 64-bit mode.
+static inline size_t dlb_reduce(uint32_t x, size_t N) {
+    return x % N;
+}
 
 extern uint32_t MurmurHash3_seed;
 void MurmurHash3_x86_32(const void *key, int len, void *out);

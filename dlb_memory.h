@@ -9,6 +9,18 @@
 #include <assert.h>
 #include <string.h>
 
+#if _DEBUG
+#define DLB_MALLOC(size) dlb_malloc_dbg(size, __FILE__, __LINE__)
+#define DLB_CALLOC(size) dlb_calloc_dbg(size, __FILE__, __LINE__)
+#define DLB_REALLOC(size) dlb_realloc_dbg(size, __FILE__, __LINE__)
+#define DLB_FREE(size) dlb_free_dbg(size, __FILE__, __LINE__)
+#else
+#define DLB_MALLOC(size) dlb_malloc(size)
+#define DLB_CALLOC(size) dlb_calloc(size)
+#define DLB_REALLOC(size) dlb_realloc(size)
+#define DLB_FREE(size) dlb_free(size)
+#endif
+
 static inline void *dlb_malloc(size_t size)
 {
     void *block = malloc(size);
@@ -23,7 +35,7 @@ static inline void *dlb_calloc(size_t count, size_t size)
 {
     void *block = calloc(count, size);
     if (!block) {
-        assert(!"dlb_malloc error");
+        assert(!"dlb_calloc error");
         exit(-404);
     }
     return block;
@@ -33,13 +45,51 @@ static inline void *dlb_realloc(void *block, size_t size)
 {
     void *block_new = realloc(block, size);
     if (!block_new) {
-        assert(!"dlb_malloc error");
+        assert(!"dlb_realloc error");
         exit(-404);
     }
     return block_new;
 }
 
 static inline void dlb_free(void *block)
+{
+    if (block) {
+        free(block);
+    }
+}
+
+
+static inline void *dlb_malloc_dbg(size_t size, const char *file, int line)
+{
+    void *block = _malloc_dbg(size, );
+    if (!block) {
+        assert(!"dlb_malloc error");
+        exit(-404);
+    }
+    return block;
+}
+
+static inline void *dlb_calloc_dbg(size_t count, size_t size, const char *file, int line)
+{
+    void *block = calloc(count, size);
+    if (!block) {
+        assert(!"dlb_calloc error");
+        exit(-404);
+    }
+    return block;
+}
+
+static inline void *dlb_realloc_dbg(void *block, size_t size, const char *file, int line)
+{
+    void *block_new = realloc(block, size);
+    if (!block_new) {
+        assert(!"dlb_realloc error");
+        exit(-404);
+    }
+    return block_new;
+}
+
+static inline void dlb_free_dbg(void *block, const char *file, int line)
 {
     if (block) {
         free(block);
