@@ -263,9 +263,11 @@ struct quat
 
 #define QUAT_IDENT QUAT(1.0f, 0.0f, 0.0f, 0.0f)
 
-static const struct mat4 MAT4_IDENT;
+extern const struct mat4 MAT4_IDENT;
 
 //--- Vectors --------------------------
+DLB_MATH_DEF int v3_iszero(const struct vec3 *v);
+DLB_MATH_DEF int v3_istiny(const struct vec3 *v);
 DLB_MATH_DEF struct vec3 *v3_add(struct vec3 *a, const struct vec3 *b);
 DLB_MATH_DEF struct vec3 *v3_sub(struct vec3 *a, const struct vec3 *b);
 DLB_MATH_DEF struct vec3 *v3_scale(struct vec3 *v, const struct vec3 *s);
@@ -393,13 +395,27 @@ DLB_MATH_DEF void quat_print(struct quat *q);
 #ifdef DLB_MATH_IMPLEMENTATION
 #ifndef DLB_MATH_IMPL_INTERNAL
 #define DLB_MATH_IMPL_INTERNAL
-#if 1
+#include <assert.h>
+
 static const struct mat4 MAT4_IDENT = {{{
     1.0f, 0.0f, 0.0f, 0.0f,
     0.0f, 1.0f, 0.0f, 0.0f,
     0.0f, 0.0f, 1.0f, 0.0f,
     0.0f, 0.0f, 0.0f, 1.0f
 }}};
+
+DLB_MATH_DEF int v3_iszero(const struct vec3 *v)
+{
+    return v->x == 0 && v->y == 0 && v->z == 0;
+}
+
+DLB_MATH_DEF int v3_istiny(const struct vec3 *v)
+{
+    return
+        fabsf(v->x) < VEC3_EPSILON &&
+        fabsf(v->y) < VEC3_EPSILON &&
+        fabsf(v->z) < VEC3_EPSILON;
+}
 
 DLB_MATH_DEF struct vec3 *v3_add(struct vec3 *a, const struct vec3 *b)
 {
@@ -437,7 +453,7 @@ DLB_MATH_DEF float v3_dot(const struct vec3 *a, const struct vec3 *b)
 }
 DLB_MATH_DEF struct vec3 v3_cross(const struct vec3 *a, const struct vec3 *b)
 {
-    struct vec3 c;
+    struct vec3 c = { 0 };
     c.x = a->y * b->z - a->z * b->y;
     c.y = a->z * b->x - a->x * b->z;
     c.z = a->x * b->y - a->y * b->x;
@@ -526,7 +542,7 @@ DLB_MATH_DEF struct vec3 *v3_mul_quat(struct vec3 *v, const struct quat *q)
     struct quat qq = *q;
 
     // Create pure quaternion from v
-    struct quat qv;
+    struct quat qv = { 0 };
     qv.w = 0.0f;
     qv.x = v->x;
     qv.y = v->y;
@@ -551,7 +567,8 @@ DLB_MATH_DEF struct vec3 *v3_mul_quat(struct vec3 *v, const struct quat *q)
     v->z = qq.z;
     return v;
 }
-#else
+
+#if 0
 DLB_MATH_DEF struct vec3 v3_add(struct vec3 a, struct vec3 b)
 {
     a.x += b.x;
@@ -640,7 +657,7 @@ DLB_MATH_DEF struct mat4 mat4_init(
     float m20, float m21, float m22, float m23,
     float m30, float m31, float m32, float m33)
 {
-    struct mat4 mat;
+    struct mat4 mat = { 0 };
     mat.m[0][0] = m00;
     mat.m[0][1] = m01;
     mat.m[0][2] = m02;
@@ -1036,7 +1053,7 @@ DLB_MATH_DEF struct quat *quat_inverse(struct quat *q)
 //DLB_MATH_DEF struct quat *quat_mul(struct quat *a, const struct quat *b)
 DLB_MATH_DEF struct quat *quat_mul(struct quat *a, const struct quat *b)
 {
-    struct quat c;
+    struct quat c = { 0 };
     c.w = a->w*b->w - a->x*b->x - a->y*b->y - a->z*b->z;
     c.x = a->w*b->x + a->x*b->w + a->y*b->z - a->z*b->y;
     c.y = a->w*b->y - a->x*b->z + a->y*b->w + a->z*b->x;
