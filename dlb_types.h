@@ -72,6 +72,8 @@ typedef r64     real64;
 #define MIN(a, b) ((a) < (b) ? (a) : (b))
 #define MAX(a, b) ((a) > (b) ? (a) : (b))
 #define ABS(x) (((x) > 0) ? (x) : -(x))
+#define CLAMP(x, min, max) (MAX((min), MIN((x), (max))))
+#define LERP(a, b, alpha) ((a) + ((b) - (a)) * (alpha))
 
 #define ARRAY_SIZE(x) (sizeof(x) / sizeof((x)[0]))                      // NOTE: Old name is ARRAY_COUNT
 #define FIELD_SIZEOF(type, field) (sizeof(((type *)0)->field))          // NOTE: Old name is SIZEOF_MEMBER
