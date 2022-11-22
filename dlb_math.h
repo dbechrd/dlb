@@ -33,8 +33,6 @@
 #define DEG_TO_RADF(deg) deg * (float)M_PI / 180.0f
 #define RAD_TO_DEGF(rad) rad * 180.0f / (float)M_PI
 
-#define LERP(v0, v1, t) (1 - t) * v0 + t * v1
-
 #define MATH_EPSILON 0.0001f
 #define VEC2_EPSILON MATH_EPSILON
 #define VEC3_EPSILON MATH_EPSILON
