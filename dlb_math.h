@@ -36,6 +36,7 @@
 #define LERP(v0, v1, t) (1 - t) * v0 + t * v1
 
 #define MATH_EPSILON 0.0001f
+#define VEC2_EPSILON MATH_EPSILON
 #define VEC3_EPSILON MATH_EPSILON
 #define MAT4_EPSILON MATH_EPSILON
 #define QUAT_EPSILON MATH_EPSILON
@@ -266,6 +267,22 @@ struct quat
 extern const struct mat4 MAT4_IDENT;
 
 //--- Vectors --------------------------
+DLB_MATH_DEF int v2_iszero(const struct vec2 *v);
+DLB_MATH_DEF int v2_istiny(const struct vec2 *v);
+DLB_MATH_DEF struct vec2 *v2_add(struct vec2 *a, const struct vec2 *b);
+DLB_MATH_DEF struct vec2 *v2_sub(struct vec2 *a, const struct vec2 *b);
+DLB_MATH_DEF struct vec2 *v2_scale(struct vec2 *v, const struct vec2 *s);
+DLB_MATH_DEF struct vec2 *v2_scalef(struct vec2 *v, float s);
+DLB_MATH_DEF float v2_dot(const struct vec2 *a, const struct vec2 *b);
+DLB_MATH_DEF struct vec2 v2_cross(const struct vec2 *a, const struct vec2 *b);
+DLB_MATH_DEF struct vec2 v2_reflect(const struct vec2 *a, const struct vec2 *b);
+DLB_MATH_DEF float v2_length(const struct vec2 *v);
+DLB_MATH_DEF float v2_length_sq(const struct vec2 *v);
+DLB_MATH_DEF struct vec2 *v2_negate(struct vec2 *v);
+DLB_MATH_DEF struct vec2 *v2_normalize(struct vec2 *v);
+DLB_MATH_DEF struct vec2 *v2_positive(struct vec2 *v);
+DLB_MATH_DEF int v2_equals(const struct vec2 *a, const struct vec2 *b);
+
 DLB_MATH_DEF int v3_iszero(const struct vec3 *v);
 DLB_MATH_DEF int v3_istiny(const struct vec3 *v);
 DLB_MATH_DEF struct vec3 *v3_add(struct vec3 *a, const struct vec3 *b);
@@ -404,6 +421,102 @@ static const struct mat4 MAT4_IDENT = {{{
     0.0f, 0.0f, 0.0f, 1.0f
 }}};
 
+DLB_MATH_DEF int v2_iszero(const struct vec2 *v)
+{
+    return v->x == 0 && v->y == 0;
+}
+
+DLB_MATH_DEF int v2_istiny(const struct vec2 *v)
+{
+    return
+        fabsf(v->x) < VEC2_EPSILON &&
+        fabsf(v->y) < VEC2_EPSILON;
+}
+
+DLB_MATH_DEF struct vec2 *v2_add(struct vec2 *a, const struct vec2 *b)
+{
+    a->x += b->x;
+    a->y += b->y;
+    return a;
+}
+DLB_MATH_DEF struct vec2 *v2_sub(struct vec2 *a, const struct vec2 *b)
+{
+    a->x -= b->x;
+    a->y -= b->y;
+    return a;
+}
+DLB_MATH_DEF struct vec2 *v2_scale(struct vec2 *v, const struct vec2 *s)
+{
+    v->x *= s->x;
+    v->y *= s->y;
+    return v;
+}
+DLB_MATH_DEF struct vec2 *v2_scalef(struct vec2 *v, float s)
+{
+    v->x *= s;
+    v->y *= s;
+    return v;
+}
+DLB_MATH_DEF float v2_dot(const struct vec2 *a, const struct vec2 *b)
+{
+    float dot = a->x * b->x + a->y * b->y;
+    if (fabsf(dot) < VEC2_EPSILON) dot = 0.0f;
+    return dot;
+}
+DLB_MATH_DEF struct vec2 v2_reflect(const struct vec2 *a, const struct vec2 *b)
+{
+    // r = a - (2 * dot(a, b) / len_sq(b)) * b
+    float dot = v2_dot(a, b);
+    float len = v2_length_sq(b);
+    float scale = 2.0f * dot / len;
+
+    struct vec2 scale_b = *b;
+    v2_scalef(&scale_b, scale);
+
+    struct vec2 r = scale_b;
+    v2_sub(&r, a);
+
+    return r;
+}
+DLB_MATH_DEF float v2_length(const struct vec2 *v)
+{
+    return sqrtf(
+        v->x * v->x +
+        v->y * v->y
+    );
+}
+DLB_MATH_DEF float v2_length_sq(const struct vec2 *v)
+{
+    float len_sq = v->x * v->x + v->y * v->y;
+    return len_sq;
+}
+DLB_MATH_DEF struct vec2 *v2_negate(struct vec2 *v)
+{
+    v->x = -v->x;
+    v->y = -v->y;
+    return v;
+}
+DLB_MATH_DEF struct vec2 *v2_normalize(struct vec2 *v)
+{
+    float len = v2_length(v);
+    if (len == 0) return v;
+
+    len = 1.0f / len;
+    v->x *= len;
+    v->y *= len;
+    return v;
+}
+DLB_MATH_DEF struct vec2 *v2_positive(struct vec2 *v)
+{
+    if (v->x < 0) v->x *= -1;
+    if (v->y < 0) v->y *= -1;
+    return v;
+}
+DLB_MATH_DEF int v2_equals(const struct vec2 *a, const struct vec2 *b)
+{
+    return a->x == b->x && a->y == b->y;
+}
+
 DLB_MATH_DEF int v3_iszero(const struct vec3 *v)
 {
     return v->x == 0 && v->y == 0 && v->z == 0;
@@ -514,7 +627,7 @@ DLB_MATH_DEF struct vec3 *v3_positive(struct vec3 *v)
 }
 DLB_MATH_DEF int v3_equals(const struct vec3 *a, const struct vec3 *b)
 {
-    return (a->x == b->x && a->y == b->y && a->z == b->z);
+    return a->x == b->x && a->y == b->y && a->z == b->z;
 }
 DLB_MATH_DEF struct vec3 *v3_mul_mat4(struct vec3 *v, const struct mat4 *m)
 {
