@@ -299,6 +299,8 @@ DLB_MATH_DEF int v3_equals(const struct vec3 *a, const struct vec3 *b);
 DLB_MATH_DEF struct vec3 *v3_mul_mat4(struct vec3 *v, const struct mat4 *m);
 DLB_MATH_DEF struct vec3 *v3_mul_quat(struct vec3 *v, const struct quat *q);
 
+DLB_MATH_DEF int v4_equals(const struct vec4 *a, const struct vec4 *b);
+
 //--- Matrices -------------------------
 DLB_MATH_DEF struct mat4 mat4_init(
     float m00, float m01, float m02, float m03,
