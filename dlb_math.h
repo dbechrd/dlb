@@ -46,9 +46,6 @@ struct rect
         struct {
             s32 x, y, w, h;
         };
-        struct {
-            s32 left, top, right, bottom;
-        };
     };
 };
 
@@ -264,6 +261,9 @@ struct quat
 
 extern const struct mat4 MAT4_IDENT;
 
+//--- Rects ----------------------------
+DLB_MATH_DEF int rect_intersect(const struct rect *a, const struct rect *b);
+
 //--- Vectors --------------------------
 DLB_MATH_DEF int v2_iszero(const struct vec2 *v);
 DLB_MATH_DEF int v2_istiny(const struct vec2 *v);
@@ -420,6 +420,15 @@ static const struct mat4 MAT4_IDENT = {{{
     0.0f, 0.0f, 1.0f, 0.0f,
     0.0f, 0.0f, 0.0f, 1.0f
 }}};
+
+DLB_MATH_DEF int rect_intersect(const struct rect *a, const struct rect *b)
+{
+    return
+        a->x + a->w > b->x &&
+        b->x + b->w > a->x &&
+        a->y + a->h > b->y &&
+        b->y + b->h > a->y;
+}
 
 DLB_MATH_DEF int v2_iszero(const struct vec2 *v)
 {
