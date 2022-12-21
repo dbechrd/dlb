@@ -41,12 +41,7 @@
 
 struct rect
 {
-    union
-    {
-        struct {
-            s32 x, y, w, h;
-        };
-    };
+    float x, y, w, h;
 };
 
 struct vec2
