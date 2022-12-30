@@ -164,7 +164,7 @@ static dlb_hash_entry *_dlb_hash_find(dlb_hash *table, const void *key, size_t k
         if (entry->klen == klen) {
             switch (table->type) {
                 case DLB_HASH_STRING: {
-                    match = !strncmp(entry->key, key, klen);
+                    match = !strncmp((const char *)entry->key, (const char *)key, klen);
                     break;
                 } case DLB_HASH_INT: {
                     match = entry->key == key;

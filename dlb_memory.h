@@ -61,7 +61,7 @@ static inline void dlb_free(void *block)
 
 static inline void *dlb_malloc_dbg(size_t size, const char *file, int line)
 {
-    void *block = _malloc_dbg(size, );
+    void *block = malloc(size);
     if (!block) {
         assert(!"dlb_malloc error");
         exit(-404);
