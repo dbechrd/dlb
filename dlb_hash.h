@@ -235,7 +235,7 @@ void *dlb_hash_search(dlb_hash *table, const void *key, size_t klen, int *found)
     }
 #endif
 
-    DLB_ASSERT(key);
+    //DLB_ASSERT(key);
     DLB_ASSERT(klen);
     void *value = NULL;
     int value_found = 0;
