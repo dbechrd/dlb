@@ -18,7 +18,7 @@
 // whatever dense array structure is being used (usually a dlb_vector), and ensuring that the element at that index
 // is actually a match (i.e. symbol/string comparison on name field, or some other effective GUID)
 //
-// When a match is encountered, the calling code can early exist. When there is no match, the calling code should
+// When a match is encountered, the calling code can early exit. When there is no match, the calling code should
 // continue calling dlb_index_next until either a match is found or DLB_INDEX_EMPTY is returned.
 //
 // Example usage:
